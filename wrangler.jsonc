@@ -1,0 +1,10 @@
+// Sitio estático de Audio Pitcher en Cloudflare (Workers con assets estáticos)
+{
+  "name": "audio-pitcher",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./web",
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash"
+  }
+}
