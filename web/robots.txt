@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://audio-pitcher.vercel.app/sitemap.xml
+Sitemap: https://audio-pitcher.biyeikgameryt.workers.dev/sitemap.xml
