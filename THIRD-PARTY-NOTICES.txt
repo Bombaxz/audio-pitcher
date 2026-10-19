@@ -1,0 +1,41 @@
+Audio Pitcher
+Copyright (C) 2026 Audio Pitcher contributors
+Licensed under the GNU General Public License v3.0 (see LICENSE).
+Source code: https://github.com/Bombaxz/audio-pitcher
+
+Audio Pitcher uses the following third-party components:
+
+--------------------------------------------------------------------------------
+Rubber Band Library
+https://breakfastquay.com/rubberband/
+Copyright (C) Particular Programs Ltd.
+License: GNU General Public License v2.0 or later
+
+--------------------------------------------------------------------------------
+Signalsmith Stretch
+https://github.com/Signalsmith-Audio/signalsmith-stretch
+Copyright (c) Signalsmith Audio Ltd. / Geraint Luff
+License: MIT
+
+--------------------------------------------------------------------------------
+NAudio
+https://github.com/naudio/NAudio
+Copyright (c) Mark Heath and contributors
+License: MIT
+
+--------------------------------------------------------------------------------
+rubberband-sharp
+https://www.nuget.org/packages/rubberband-sharp
+License: see package
+
+--------------------------------------------------------------------------------
+MinGW-w64 winpthreads (libwinpthread-1.dll)
+https://www.mingw-w64.org/
+License: MIT / BSD-style (see MinGW-w64 COPYING)
+
+--------------------------------------------------------------------------------
+VB-CABLE Virtual Audio Device
+https://vb-audio.com/Cable/
+Copyright (c) VB-Audio Software (Vincent Burel)
+Not bundled with Audio Pitcher. It is downloaded from the official VB-Audio
+website during installation, under VB-Audio's own license (donationware).

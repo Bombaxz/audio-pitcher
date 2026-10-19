@@ -1,0 +1,859 @@
+<Window x:Class="AudioPitcher.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AudioPitcher"
+        Title="Audio Pitcher" Width="290" SizeToContent="Height"
+        WindowStyle="None" Background="{DynamicResource BrushBg}"
+        Topmost="True" ResizeMode="CanResize" MinWidth="200" MinHeight="46" ShowInTaskbar="True"
+        MouseLeftButtonDown="Window_MouseDown"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
+
+    <WindowChrome.WindowChrome>
+        <!-- 1px inferior mantiene vivo el frame DWM → sombra nativa -->
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="8"
+                      GlassFrameThickness="0,0,0,1" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+
+        <!-- Engranaje (FillRule EvenOdd deja el agujero central hueco) -->
+        <Geometry x:Key="GearGeometry">M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z</Geometry>
+
+        <!-- ComboBox item -->
+        <Style x:Key="DarkComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="5"
+                                Padding="{TemplateBinding Padding}" Margin="3,2">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrushHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrushSelItem}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrushBlue}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox -->
+        <Style x:Key="DarkCombo" TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource BrushSurface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboItem}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="8">
+                                <Grid Margin="10,0,8,0">
+                                    <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="›" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource BrushMuted}" FontSize="14" RenderTransformOrigin="0.5,0.5">
+                                        <TextBlock.RenderTransform><RotateTransform Angle="90"/></TextBlock.RenderTransform>
+                                    </TextBlock>
+                                    <ToggleButton IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                 Background="Transparent" BorderBrush="Transparent" Focusable="False">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border Background="Transparent"/>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                    </ToggleButton>
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Background="{DynamicResource BrushSurface}" CornerRadius="8"
+                                        BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                                        MinWidth="{TemplateBinding ActualWidth}" MaxHeight="260" Margin="0,2,0,0">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="14" Color="Black" Opacity="0.5" ShadowDepth="3"/>
+                                    </Border.Effect>
+                                    <ScrollViewer CanContentScroll="True" Margin="0,4"
+                                                  VerticalScrollBarVisibility="Hidden">
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrushBorderHov}"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrushBlue}"/>
+                                <Setter TargetName="Bd" Property="Background"   Value="{DynamicResource BrushSelected}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Icon button -->
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushMuted}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrushSelected}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrushHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pitch slider template -->
+        <ControlTemplate x:Key="SliderTpl" TargetType="Slider">
+            <Grid Height="22">
+                <Track x:Name="PART_Track" Margin="8,0">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Command="Slider.DecreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="{DynamicResource BrushBlue}" Height="3" CornerRadius="2"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Command="Slider.IncreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="{DynamicResource BrushOverlay}" Height="3" CornerRadius="2"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb>
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Grid>
+                                        <Ellipse Width="18" Height="18" Fill="{DynamicResource BrushBlue}">
+                                            <Ellipse.Effect>
+                                                <DropShadowEffect Color="#89B4FA" BlurRadius="10" Opacity="0.5" ShadowDepth="0"/>
+                                            </Ellipse.Effect>
+                                        </Ellipse>
+                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource BrushBg}"/>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="SliderTplPitch" TargetType="Slider">
+            <Grid Height="22">
+                <Track x:Name="PART_Track" Margin="8,0">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Command="Slider.DecreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="{DynamicResource BrushPitchFill}" Height="3" CornerRadius="2"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Command="Slider.IncreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="{DynamicResource BrushOverlay}" Height="3" CornerRadius="2"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb>
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Grid>
+                                        <Ellipse Width="18" Height="18" Fill="{DynamicResource BrushPitchFill}">
+                                            <Ellipse.Effect>
+                                                <DropShadowEffect Color="#89B4FA" BlurRadius="10" Opacity="0.5" ShadowDepth="0"/>
+                                            </Ellipse.Effect>
+                                        </Ellipse>
+                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource BrushBg}"/>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </ControlTemplate>
+
+        <ControlTemplate x:Key="SliderTplFormant" TargetType="Slider">
+            <Grid Height="22">
+                <Track x:Name="PART_Track" Margin="8,0">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Command="Slider.DecreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="{DynamicResource BrushFormantFill}" Height="3" CornerRadius="2"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Command="Slider.IncreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="{DynamicResource BrushOverlay}" Height="3" CornerRadius="2"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb>
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Grid>
+                                        <Ellipse Width="18" Height="18" Fill="{DynamicResource BrushFormantFill}">
+                                            <Ellipse.Effect>
+                                                <DropShadowEffect Color="#CBA6F7" BlurRadius="10" Opacity="0.5" ShadowDepth="0"/>
+                                            </Ellipse.Effect>
+                                        </Ellipse>
+                                        <Ellipse Width="6" Height="6" Fill="{DynamicResource BrushBg}"/>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </ControlTemplate>
+
+    </Window.Resources>
+
+    <Border x:Name="RootBorder" Background="{DynamicResource BrushBg}" CornerRadius="14"
+            BorderBrush="{DynamicResource BrushOverlay}" BorderThickness="1">
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ── HEADER ──────────────────────────────────────────────── -->
+            <Grid Grid.Row="0" Margin="16,12,12,12" MouseLeftButtonDown="Window_MouseDown">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Rectangle x:Name="StatusLogo" Width="17" Height="18" Fill="{DynamicResource BrushMuted}"
+                               Margin="0,0,7,0" VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality">
+                        <Rectangle.OpacityMask>
+                            <ImageBrush ImageSource="pack://application:,,,/logo.png" Stretch="Uniform"/>
+                        </Rectangle.OpacityMask>
+                    </Rectangle>
+                    <TextBlock x:Name="TitleLabel" Text="AUDIO PITCHER"
+                               Foreground="{DynamicResource BrushSubtext}"
+                               FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel x:Name="HeaderBtns" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="UpdateBtn" Style="{StaticResource IconBtn}" Visibility="Collapsed"
+                            Click="UpdateBtn_Click" MouseEnter="UpdateBtn_MouseEnter" MouseLeave="UpdateBtn_MouseLeave">
+                        <!-- raya finita con una flechita en el medio, sin relleno -->
+                        <Grid x:Name="UpdPill" Width="20" Height="12" Opacity="0.55">
+                            <Path Data="M1,11 L19,11" Stroke="{DynamicResource BrushGreen}"
+                                  StrokeThickness="0.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                            <Path Data="M7.5,4 L10,1.5 L12.5,4 M10,1.5 L10,8.5" Stroke="{DynamicResource BrushGreen}"
+                                  StrokeThickness="0.9" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round">
+                                <Path.RenderTransform><TranslateTransform x:Name="UpdHop"/></Path.RenderTransform>
+                            </Path>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="RecBtn" Style="{StaticResource IconBtn}"
+                            Click="RecBtn_Click" ToolTip="Grabar audio del sistema">
+                        <TextBlock x:Name="RecBtnIcon" Text="⏺" FontSize="10"
+                                   TextOptions.TextFormattingMode="Ideal">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource BrushMuted}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                            <Setter Property="Foreground" Value="#F0475A"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+                    <Button x:Name="SettingsBtn" Style="{StaticResource IconBtn}"
+                            Click="ToggleSettings_Click" ToolTip="Configuración">
+                        <Path Data="{StaticResource GearGeometry}" Fill="{DynamicResource BrushBlue}"
+                              Width="13" Height="13" Stretch="Uniform"/>
+                    </Button>
+                    <Button x:Name="PinBtn" Content="⊙" Style="{StaticResource IconBtn}" FontSize="12"
+                            Click="PinBtn_Click" ToolTip="Mantener al frente"/>
+                    <Button x:Name="MinimizeBtn" Content="—" Style="{StaticResource IconBtn}" FontSize="11"
+                            Click="Minimize_Click" ToolTip="Minimizar"/>
+                    <Button Content="✕" Style="{StaticResource IconBtn}" FontSize="11" Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- ── SCROLLABLE / CLIPPED CONTENT ─────────────────────── -->
+            <Border x:Name="ShadeContent" Grid.Row="1" ClipToBounds="True">
+            <StackPanel>
+
+            <Rectangle Height="1" Fill="{DynamicResource BrushOverlay}"/>
+
+            <!-- ── MAIN PANEL ──────────────────────────────────────────── -->
+            <StackPanel x:Name="MainPanel" Margin="16,12,16,16">
+
+                <!-- ── APP A PITCHEAR ── -->
+                <TextBlock Text="APP" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,5"/>
+                <ComboBox x:Name="AppCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,14"
+                          ToolTip="Elegí de qué programa capturar el audio"
+                          DropDownOpened="AppCombo_DropDownOpened"
+                          SelectionChanged="AppCombo_SelectionChanged">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel LastChildFill="True" Background="Transparent"
+                                       PreviewMouseLeftButtonDown="AppItem_PreviewMouseDown"
+                                       PreviewMouseLeftButtonUp="AppItem_PreviewMouseUp">
+                                <TextBlock DockPanel.Dock="Right" Margin="8,0,0,0" FontSize="12"
+                                           VerticalAlignment="Center" Cursor="Hand"
+                                           PreviewMouseLeftButtonDown="FavStar_MouseDown"
+                                           PreviewMouseLeftButtonUp="FavStar_MouseUp"
+                                           ToolTip="Fijar arriba de la lista">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Setter Property="Text" Value="☆"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource BrushMuted}"/>
+                                            <Style.Triggers>
+                                                <!-- Solo en items del dropdown (no en la caja de selección) y solo para apps -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsApp}" Value="True"/>
+                                                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ComboBoxItem}, Path=IsEnabled}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                                <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                    <Setter Property="Text" Value="★"/>
+                                                    <Setter Property="Foreground" Value="#F9E2AF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0"
+                                           VerticalAlignment="Center"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- ── PITCH ── -->
+                <Grid Margin="0,0,0,4">
+                    <TextBlock x:Name="PitchHeader" Text="PITCH" Foreground="{DynamicResource BrushMuted2}"
+                               FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                               MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:PITCH" Cursor="Hand"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Grid>
+                            <TextBlock x:Name="PitchLabel" Text="+0.0" Foreground="{DynamicResource BrushPitchFill}"
+                                       FontSize="20" FontWeight="Bold" Cursor="SizeWE"
+                                       ToolTip="Arrastrá para cambiar · Click para editar · Click derecho para color"
+                                       MouseLeftButtonDown="PitchLabel_MouseDown"
+                                       MouseMove="PitchLabel_MouseMove"
+                                       MouseLeftButtonUp="PitchLabel_MouseUp"
+                                       MouseRightButtonUp="Slider_ColorPick"/>
+                            <TextBox x:Name="PitchEditBox" Visibility="Collapsed"
+                                     Background="Transparent" Foreground="{DynamicResource BrushPitchFill}"
+                                     CaretBrush="{DynamicResource BrushPitchFill}"
+                                     BorderBrush="{DynamicResource BrushPitchFill}" BorderThickness="0,0,0,1"
+                                     SelectionBrush="{DynamicResource BrushPitchFill}"
+                                     FontSize="18" FontWeight="Bold" Width="58" MaxLength="6"
+                                     VerticalAlignment="Center"
+                                     KeyDown="PitchEditBox_KeyDown" LostFocus="PitchEditBox_LostFocus"/>
+                        </Grid>
+                        <TextBlock Text=" st" Foreground="{DynamicResource BrushMuted2}"
+                                   FontSize="9" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        <Button Style="{StaticResource IconBtn}" Click="ResetPitch_Click" Margin="4,0,0,0"
+                                ToolTip="Resetear" Foreground="{DynamicResource BrushMuted}">
+                            <TextBlock Text="⟲" FontSize="13"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+                <Slider x:Name="PitchSlider" Minimum="-12" Maximum="12" Value="0"
+                        SmallChange="0.1" LargeChange="1"
+                        ValueChanged="PitchSlider_ValueChanged" Margin="0,0,0,2"
+                        Template="{StaticResource SliderTplPitch}"
+                        PreviewMouseLeftButtonDown="PitchSlider_PreviewMouseDown"
+                        MouseRightButtonUp="Slider_ColorPick"/>
+                <Grid Margin="8,0,8,12">
+                    <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="9"/>
+                    <TextBlock Text="0"   Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Center"/>
+                    <TextBlock Text="+12" Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Right"/>
+                </Grid>
+
+                <!-- ── FORMANT ── -->
+                <Grid Margin="0,0,0,4">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="FormantHeader" Text="FORMANT" Foreground="{DynamicResource BrushMuted2}"
+                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:FORMANT" Cursor="Hand"/>
+                        <TextBlock x:Name="FormantUnavailLabel" Text=" (requiere rubberband.dll)"
+                                   Foreground="{DynamicResource BrushMuted}" FontSize="8" VerticalAlignment="Center"
+                                   Visibility="Collapsed"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Grid>
+                            <TextBlock x:Name="FormantLabel" Text="+0.0" Foreground="{DynamicResource BrushFormantFill}"
+                                       FontSize="20" FontWeight="Bold" Cursor="SizeWE"
+                                       ToolTip="Arrastrá para cambiar · Click para editar · Click derecho para color"
+                                       MouseLeftButtonDown="FormantLabel_MouseDown"
+                                       MouseMove="FormantLabel_MouseMove"
+                                       MouseLeftButtonUp="FormantLabel_MouseUp"
+                                       MouseRightButtonUp="FormantLabel_ColorPick"/>
+                            <TextBox x:Name="FormantEditBox" Visibility="Collapsed"
+                                     Background="Transparent" Foreground="{DynamicResource BrushFormantFill}"
+                                     CaretBrush="{DynamicResource BrushFormantFill}"
+                                     BorderBrush="{DynamicResource BrushFormantFill}" BorderThickness="0,0,0,1"
+                                     SelectionBrush="{DynamicResource BrushFormantFill}"
+                                     FontSize="18" FontWeight="Bold" Width="58" MaxLength="6"
+                                     VerticalAlignment="Center"
+                                     KeyDown="FormantEditBox_KeyDown" LostFocus="FormantEditBox_LostFocus"/>
+                        </Grid>
+                        <TextBlock Text=" st" Foreground="{DynamicResource BrushMuted2}"
+                                   FontSize="9" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        <Button Style="{StaticResource IconBtn}" Click="ResetFormant_Click" Margin="4,0,0,0"
+                                ToolTip="Resetear" Foreground="{DynamicResource BrushMuted}">
+                            <TextBlock Text="⟲" FontSize="13"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+                <Slider x:Name="FormantSlider" Minimum="-12" Maximum="12" Value="0"
+                        SmallChange="0.1" LargeChange="1"
+                        ValueChanged="FormantSlider_ValueChanged" Margin="0,0,0,2"
+                        Template="{StaticResource SliderTplFormant}"
+                        PreviewMouseLeftButtonDown="FormantSlider_PreviewMouseDown"
+                        MouseRightButtonUp="Slider_ColorPick"/>
+                <Grid Margin="8,0,8,14">
+                    <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="9"/>
+                    <TextBlock Text="0"   Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Center"/>
+                    <TextBlock Text="+12" Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Right"/>
+                </Grid>
+
+                <!-- ── FX toggle ── -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
+                    <Border x:Name="FxPill" Width="28" Height="15" CornerRadius="7.5"
+                            Background="{DynamicResource BrushBlue}" Cursor="Hand" VerticalAlignment="Center"
+                            MouseLeftButtonDown="FxOnOff_Click" MouseRightButtonUp="Slider_ColorPick"
+                            Margin="0,0,8,0">
+                        <Ellipse x:Name="FxPillDot" Width="11" Height="11" Fill="White"
+                                 HorizontalAlignment="Left" Margin="15,0,0,0"/>
+                    </Border>
+                    <Button x:Name="FxBtn" Click="ToggleFx_Click" Cursor="Hand" VerticalAlignment="Center">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <StackPanel x:Name="Sp" Orientation="Horizontal">
+                                    <TextBlock x:Name="FxTextLabel" Text="FX" Foreground="{DynamicResource BrushBlue}"
+                                               FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="FxArrow" Text=" ▸" Foreground="{DynamicResource BrushBlue}"
+                                               FontSize="9" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Sp" Property="Opacity" Value="0.65"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+                <!-- ── FX PANEL (animated) ── -->
+                <Border x:Name="FxPanel" MaxHeight="0" ClipToBounds="True">
+                  <StackPanel Margin="0,0,0,10">
+
+                    <!-- REVERB -->
+                    <Grid Cursor="Hand" MouseLeftButtonDown="ReverbToggle_Click" Margin="0,0,0,4">
+                        <TextBlock x:Name="ReverbHeader" Text="REVERB" Foreground="{DynamicResource BrushMuted2}"
+                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:REVERB"/>
+                        <TextBlock x:Name="ReverbArrow" Text="▾" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border x:Name="ReverbSection" MaxHeight="90" ClipToBounds="True">
+                        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" MaxWidth="180">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                            <local:KnobControl x:Name="ReverbWetKnob"  Label="WET"  Minimum="0" Maximum="1"   Value="0"   Scale="100" Suffix="%" DecimalPlaces="0" KnobColor="#A6E3A1" Margin="3,0" ValueChanged="ReverbWetKnob_Changed"/>
+                            <local:KnobControl x:Name="ReverbRoomKnob" Label="ROOM" Minimum="0" Maximum="1"   Value="0.5" Scale="100" Suffix="%" DecimalPlaces="0"                    Margin="3,0" ValueChanged="ReverbRoomKnob_Changed"/>
+                            <local:KnobControl x:Name="ReverbDampKnob" Label="DAMP" Minimum="0" Maximum="1"   Value="0.5" Scale="100" Suffix="%" DecimalPlaces="0"                    Margin="3,0" ValueChanged="ReverbDampKnob_Changed"/>
+                        </StackPanel>
+                        </Viewbox>
+                    </Border>
+
+                    <!-- DELAY -->
+                    <Grid Cursor="Hand" MouseLeftButtonDown="DelayToggle_Click" Margin="0,0,0,4">
+                        <TextBlock x:Name="DelayHeader" Text="DELAY" Foreground="{DynamicResource BrushMuted2}"
+                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:DELAY"/>
+                        <TextBlock x:Name="DelayArrow" Text="▾" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border x:Name="DelaySection" MaxHeight="90" ClipToBounds="True">
+                        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" MaxWidth="180">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                            <local:KnobControl x:Name="DelayWetKnob"  Label="WET"      Minimum="0"  Maximum="1"   Value="0"    Scale="100" Suffix="%" DecimalPlaces="0" KnobColor="#A6E3A1" Margin="3,0" ValueChanged="DelayWetKnob_Changed"/>
+                            <local:KnobControl x:Name="DelayTimeKnob" Label="TIME"     Minimum="50" Maximum="800" Value="300"               Suffix="ms" DecimalPlaces="0" KnobColor="#F9E2AF" Margin="3,0" ValueChanged="DelayTimeKnob_Changed"/>
+                            <local:KnobControl x:Name="DelayFbKnob"   Label="FEEDBACK" Minimum="0"  Maximum="0.9" Value="0.45" Scale="100" Suffix="%" DecimalPlaces="0"                    Margin="3,0" ValueChanged="DelayFbKnob_Changed"/>
+                        </StackPanel>
+                        </Viewbox>
+                    </Border>
+
+                    <!-- CHORUS -->
+                    <Grid Cursor="Hand" MouseLeftButtonDown="ChorusToggle_Click" Margin="0,0,0,4">
+                        <TextBlock x:Name="ChorusHeader" Text="CHORUS" Foreground="{DynamicResource BrushMuted2}"
+                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:CHORUS"/>
+                        <TextBlock x:Name="ChorusArrow" Text="▾" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border x:Name="ChorusSection" MaxHeight="90" ClipToBounds="True">
+                        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" MaxWidth="180">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <local:KnobControl x:Name="ChorusWetKnob"   Label="WET"   Minimum="0"   Maximum="1"  Value="0"   Scale="100" Suffix="%" DecimalPlaces="0" KnobColor="#A6E3A1" Margin="3,0" ValueChanged="ChorusWetKnob_Changed"/>
+                            <local:KnobControl x:Name="ChorusRateKnob"  Label="RATE"  Minimum="0.1" Maximum="4"  Value="0.8"             Suffix="Hz" DecimalPlaces="1" KnobColor="#CBA6F7" Margin="3,0" ValueChanged="ChorusRateKnob_Changed"/>
+                            <local:KnobControl x:Name="ChorusDepthKnob" Label="DEPTH" Minimum="1"   Maximum="20" Value="5"               Suffix="ms" DecimalPlaces="1" KnobColor="#CBA6F7" Margin="3,0" ValueChanged="ChorusDepthKnob_Changed"/>
+                        </StackPanel>
+                        </Viewbox>
+                    </Border>
+
+                  </StackPanel>
+                </Border>
+
+                <!-- Status -->
+                <TextBlock x:Name="StatusLabel" Text="Sin audio. Revisá el enrutamiento."
+                           Foreground="{DynamicResource BrushMuted2}" FontSize="9"
+                           TextWrapping="Wrap" TextAlignment="Center"/>
+
+            </StackPanel>
+
+            <!-- ── SETTINGS PANEL ──────────────────────────────────────── -->
+            <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="16,12,16,16"
+                        TextOptions.TextFormattingMode="Ideal">
+                <TextBlock Text="CONFIGURACIÓN" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                <TextBlock Text="SALIDA DE AUDIO" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,5"/>
+                <ComboBox x:Name="OutputCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,4"
+                          SelectionChanged="OutputCombo_SelectionChanged"/>
+                <TextBlock Text="Cambiar mientras corre reinicia el audio."
+                           Foreground="{DynamicResource BrushHint}" FontSize="9"
+                           TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+                <!-- Motor de pitch -->
+                <TextBlock Text="MOTOR PITCH" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <Border x:Name="EngBtn0" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                            Background="{DynamicResource BrushSurface2}"
+                            Cursor="Hand" Padding="8,0" Margin="0,0,6,0"
+                            MouseLeftButtonDown="PitchEngine_Click" Tag="0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse x:Name="EngDot0" Width="6" Height="6" Margin="0,0,5,0"
+                                     Fill="{DynamicResource BrushBorder}"/>
+                            <TextBlock x:Name="EngTxt0" Text="RubberBand" Foreground="{DynamicResource BrushMuted}" FontSize="8"/>
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="EngBtn1" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBlue}" BorderThickness="2"
+                            Background="{DynamicResource BrushSurface2}"
+                            Cursor="Hand" Padding="8,0"
+                            MouseLeftButtonDown="PitchEngine_Click" Tag="1">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse x:Name="EngDot1" Width="6" Height="6" Margin="0,0,5,0"
+                                     Fill="{DynamicResource BrushGreen}"/>
+                            <TextBlock x:Name="EngTxt1" Text="Signalsmith" Foreground="{DynamicResource BrushText}" FontSize="8"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Text="AL MINIMIZAR" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <Border x:Name="MinBtn0" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBlue}" BorderThickness="2"
+                            Background="{DynamicResource BrushSurface2}"
+                            Cursor="Hand" Padding="8,0" Margin="0,0,6,0"
+                            MouseLeftButtonDown="MinimizeMode_Click" Tag="0"
+                            ToolTip="Queda en la barra de tareas, como cualquier programa">
+                        <TextBlock x:Name="MinTxt0" Text="Barra de tareas" Foreground="{DynamicResource BrushText}"
+                                   FontSize="8" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="MinBtn1" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                            Background="{DynamicResource BrushSurface2}"
+                            Cursor="Hand" Padding="8,0"
+                            MouseLeftButtonDown="MinimizeMode_Click" Tag="1"
+                            ToolTip="Se esconde junto al reloj; doble clic en el ícono para volver">
+                        <TextBlock x:Name="MinTxt1" Text="Bandeja" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="8" VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Apariencia -->
+                <Grid Margin="0,0,0,8">
+                    <TextBlock Text="APARIENCIA" Foreground="{DynamicResource BrushMuted2}"
+                               FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <Button HorizontalAlignment="Right" Style="{StaticResource IconBtn}"
+                            Click="ResetColors_Click" ToolTip="Restablecer colores del tema actual"
+                            Foreground="{DynamicResource BrushMuted}" Padding="4,2">
+                        <TextBlock Text="↺ reset" FontSize="8"/>
+                    </Button>
+                </Grid>
+
+                <Grid Margin="0,0,0,3">
+                    <TextBlock Text="HUE" Foreground="{DynamicResource BrushMuted2}" FontSize="9" FontWeight="Bold"/>
+                    <TextBlock x:Name="HueLabel" Text="0°" Foreground="{DynamicResource BrushMuted}"
+                               FontSize="9" HorizontalAlignment="Right"/>
+                </Grid>
+                <Slider x:Name="HueSlider" Minimum="-180" Maximum="180" Value="0"
+                        SmallChange="1" LargeChange="10"
+                        Template="{StaticResource SliderTpl}" Margin="0,0,0,12"
+                        ValueChanged="HueSlider_ValueChanged"/>
+
+                <TextBlock Text="TEXTO" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Border x:Name="TxtBtn0" Width="52" Height="22" CornerRadius="5"
+                            Background="{DynamicResource BrushSurface2}" BorderBrush="{DynamicResource BrushBlue}"
+                            BorderThickness="2" Cursor="Hand" Margin="0,0,6,0"
+                            MouseLeftButtonDown="TextColor_Click" Tag="0">
+                        <TextBlock Text="Normal" Foreground="{DynamicResource BrushText}" FontSize="8"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="TxtBtn2" Width="52" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1" Cursor="Hand"
+                            MouseLeftButtonDown="TextColor_Click" Tag="2">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#F38BA8" Offset="0"/>
+                                <GradientStop Color="#89B4FA" Offset="0.5"/>
+                                <GradientStop Color="#CBA6F7" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="Color" Foreground="White" FontSize="8" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+
+                <Grid Margin="0,0,0,3">
+                    <TextBlock Text="Contraste" Foreground="{DynamicResource BrushMuted}" FontSize="9"/>
+                    <TextBlock x:Name="BrilloLabel" Text="50%" Foreground="{DynamicResource BrushMuted}"
+                               FontSize="9" HorizontalAlignment="Right"/>
+                </Grid>
+                <Slider x:Name="BrilloSlider" Minimum="0" Maximum="100" Value="50"
+                        SmallChange="1" LargeChange="10"
+                        Template="{StaticResource SliderTpl}" Margin="0,0,0,12"
+                        ValueChanged="BrilloSlider_ValueChanged"/>
+
+                <TextBlock Text="FONDO" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <Border x:Name="BgBtn0" Width="36" Height="22" CornerRadius="5"
+                            Background="#1A1B2E" BorderBrush="{DynamicResource BrushBlue}"
+                            BorderThickness="2" Cursor="Hand" Margin="0,0,6,0"
+                            MouseLeftButtonDown="BgPreset_Click" Tag="0">
+                        <TextBlock Text="Dark" Foreground="#A6ADC8" FontSize="8"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="BgBtn1" Width="36" Height="22" CornerRadius="5"
+                            Background="#000000" BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1" Cursor="Hand" Margin="0,0,6,0"
+                            MouseLeftButtonDown="BgPreset_Click" Tag="1">
+                        <TextBlock Text="Black" Foreground="#A6ADC8" FontSize="8"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="BgBtn2" Width="36" Height="22" CornerRadius="5"
+                            Background="#0D0D18" BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1" Cursor="Hand" Margin="0,0,6,0"
+                            MouseLeftButtonDown="BgPreset_Click" Tag="2">
+                        <TextBlock Text="Deep" Foreground="#A6ADC8" FontSize="8"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="BgBtn3" Width="36" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1" Cursor="Hand" Margin="0,0,6,0"
+                            MouseLeftButtonDown="BgPreset_Click" Tag="3">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#F38BA8" Offset="0"/>
+                                <GradientStop Color="#F9E2AF" Offset="0.25"/>
+                                <GradientStop Color="#A6E3A1" Offset="0.5"/>
+                                <GradientStop Color="#89B4FA" Offset="0.75"/>
+                                <GradientStop Color="#CBA6F7" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="Hue" Foreground="White" FontSize="8" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="BgBtn4" Width="36" Height="22" CornerRadius="5"
+                            Background="White" BorderBrush="{DynamicResource BrushBorder}"
+                            BorderThickness="1" Cursor="Hand"
+                            MouseLeftButtonDown="BgPreset_Click" Tag="4">
+                        <TextBlock Text="White" Foreground="#333333" FontSize="8"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Margin="0,16,0,0" FontSize="8" Foreground="{DynamicResource BrushHint}">
+                    <Run x:Name="VersionRun" Text="v1.0.0"/>
+                    <Run Text="  ·  "/>
+                    <Hyperlink Click="SourceLink_Click" TextDecorations="{x:Null}"
+                               Foreground="{DynamicResource BrushHint}">Código fuente</Hyperlink>
+                    <Run Text="  ·  "/>
+                    <Hyperlink Click="LicensesLink_Click" TextDecorations="{x:Null}"
+                               Foreground="{DynamicResource BrushHint}">Licencias</Hyperlink>
+                </TextBlock>
+
+            </StackPanel>
+
+        <!-- ── RECORD PANEL ───────────────────────────────────────────────── -->
+        <Rectangle Height="1" Fill="{DynamicResource BrushOverlay}"/>
+        <Border x:Name="RecordPanel" MaxHeight="0" ClipToBounds="True">
+            <StackPanel Margin="16,10,16,12">
+
+                <!-- Status row -->
+                <Grid Margin="0,0,0,8">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse x:Name="RecDot" Width="8" Height="8" Fill="#3D3D56"
+                                 VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock x:Name="RecTimerLabel" Text="0:00.0"
+                                   Foreground="{DynamicResource BrushText}"
+                                   FontSize="13" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="RecPlayBtn" Style="{StaticResource IconBtn}" Click="RecPlay_Click"
+                                ToolTip="Escuchar lo que se va a guardar" Visibility="Collapsed">
+                            <TextBlock x:Name="RecPlayIcon" Text="▶" FontSize="11"/>
+                        </Button>
+                        <Button x:Name="RecPauseBtn" Style="{StaticResource IconBtn}" Click="RecPause_Click"
+                                ToolTip="Pausar / Reanudar">
+                            <TextBlock x:Name="RecPauseIcon" Text="⏸" FontSize="11"/>
+                        </Button>
+                        <Button x:Name="RecStopBtn" Style="{StaticResource IconBtn}" Click="RecStop_Click"
+                                ToolTip="Detener">
+                            <TextBlock Text="⏹" FontSize="11"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Waveform -->
+                <Grid Height="70" Margin="0,0,0,8">
+                    <Border CornerRadius="6" ClipToBounds="True">
+                        <Border.Background><SolidColorBrush Color="#1A1B2E"/></Border.Background>
+                        <local:WaveformControl x:Name="Waveform"/>
+                    </Border>
+                    <TextBlock x:Name="NormGainLabel" Visibility="Collapsed"
+                               HorizontalAlignment="Right" VerticalAlignment="Top"
+                               Margin="0,5,8,0" FontSize="9" FontWeight="Bold"
+                               Foreground="#A6E3A1"/>
+                </Grid>
+
+                <!-- Normalize + Save row -->
+                <Grid Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Normalize toggle -->
+                    <Border x:Name="NormBtn" Grid.Column="0" Height="28" CornerRadius="6"
+                            Padding="10,0" Margin="0,0,6,0" Cursor="Hand"
+                            Background="{DynamicResource BrushSurface}"
+                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                            MouseLeftButtonDown="NormBtn_Click" ToolTip="Normalizar al guardar">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse x:Name="NormDot" Width="6" Height="6" Margin="0,0,5,0"
+                                     Fill="{DynamicResource BrushBorder}"/>
+                            <TextBlock Text="NORM" Foreground="{DynamicResource BrushMuted}"
+                                       FontSize="8" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Save -->
+                    <Button x:Name="RecSaveBtn" Grid.Column="1" Click="RecSave_Click" IsEnabled="False"
+                            Height="28" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{DynamicResource BrushSurface}"
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6">
+                                <TextBlock Text="Guardar WAV" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource BrushText}" FontSize="10"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrushBorderHov}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrushSelected}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.35"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    </Button>
+                </Grid>
+
+            </StackPanel>
+        </Border>
+
+            </StackPanel>
+            </Border>
+
+        </Grid>
+    </Border>
+</Window>

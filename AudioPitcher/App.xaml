@@ -1,0 +1,27 @@
+﻿<Application x:Class="AudioPitcher.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:AudioPitcher"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="BrushBg"        Color="#1A1B2E"/>
+        <SolidColorBrush x:Key="BrushSurface"   Color="#2A2A3D"/>
+        <SolidColorBrush x:Key="BrushSurface2"  Color="#242438"/>
+        <SolidColorBrush x:Key="BrushOverlay"   Color="#2E2E45"/>
+        <SolidColorBrush x:Key="BrushBorder"    Color="#3D3D56"/>
+        <SolidColorBrush x:Key="BrushBorderHov" Color="#585B70"/>
+        <SolidColorBrush x:Key="BrushSelected"  Color="#313244"/>
+        <SolidColorBrush x:Key="BrushSelItem"   Color="#313D7A"/>
+        <SolidColorBrush x:Key="BrushHover"     Color="#45475A"/>
+        <SolidColorBrush x:Key="BrushMuted2"    Color="#4A4A6A"/>
+        <SolidColorBrush x:Key="BrushMuted"     Color="#6C7086"/>
+        <SolidColorBrush x:Key="BrushHint"      Color="#5C5F7A"/>
+        <SolidColorBrush x:Key="BrushSubtext"   Color="#A6ADC8"/>
+        <SolidColorBrush x:Key="BrushText"      Color="#CDD6F4"/>
+        <SolidColorBrush x:Key="BrushBlue"      Color="#89B4FA"/>
+        <SolidColorBrush x:Key="BrushGreen"     Color="#A6E3A1"/>
+        <SolidColorBrush x:Key="BrushYellow"    Color="#F9E2AF"/>
+        <SolidColorBrush x:Key="BrushMauve"     Color="#CBA6F7"/>
+        <SolidColorBrush x:Key="BrushRed"       Color="#F38BA8"/>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+installer/Output/
+installer/vbcable/
+.claude/
+CLAUDE.md
+Capturas/
