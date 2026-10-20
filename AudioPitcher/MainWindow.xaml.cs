@@ -162,6 +162,9 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+#if DEBUG
+        RunDemoToolsIfRequested();
+#endif
         VersionRun.Text = "v" + UpdateService.CurrentVersion.ToString(3);
         CheckForUpdates();
         _loading = true;   // prevent SaveSettings during initial device population
@@ -1168,7 +1171,7 @@ public partial class MainWindow : Window
 
     private void SaveSettings()
     {
-        if (_loading) return;
+        if (_loading || _demoMode) return;
         var devices = AudioEngine.GetOutputDeviceNames();
         string devName = OutputCombo.SelectedIndex == 0
             ? DefaultDeviceSentinel

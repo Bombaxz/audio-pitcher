@@ -46,64 +46,82 @@
 <body>
   <a class="skip" href="#main">Saltar al contenido</a>
 
-  <header class="nav">
-    <a class="brand" href="/" aria-label="Audio Pitcher, inicio">
-      <img src="/img/logo.png" alt="" width="24" height="24">
-      <span>Audio Pitcher</span>
-    </a>
-    <nav aria-label="Principal">
-      <a href="#como-funciona">Cómo funciona</a>
-      <a href="#preguntas">Preguntas</a>
-      <a href="https://github.com/Bombaxz/audio-pitcher" rel="noopener" aria-label="Código en GitHub"><i class="ph ph-github-logo"></i></a>
-    </nav>
-    <a class="btn btn-sm" href="https://github.com/Bombaxz/audio-pitcher/releases/latest/download/AudioPitcher-Setup.exe" data-download="nav">Descargar</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Audio Pitcher, inicio">
+        <img src="/img/logo.png" alt="" width="24" height="24">
+        <span>Audio Pitcher</span>
+      </a>
+      <nav aria-label="Principal">
+        <a href="#funciones">Funciones</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#preguntas">Preguntas</a>
+        <a href="https://github.com/Bombaxz/audio-pitcher" rel="noopener" aria-label="Código en GitHub"><i class="ph ph-github-logo"></i></a>
+        <a class="btn btn-sm" href="https://github.com/Bombaxz/audio-pitcher/releases/latest/download/AudioPitcher-Setup.exe" data-download="nav">Descargar</a>
+      </nav>
+    </div>
   </header>
 
   <main id="main">
 
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow reveal">Gratis · Código abierto · Windows 10 y 11</p>
-        <h1 class="reveal">Cambia el tono de cualquier app<br> de Windows, en tiempo real</h1>
-        <p class="lead reveal">Sube o baja el pitch de Spotify, YouTube, Discord o un juego mientras suena,<br> sin cambiar la velocidad. Sin cuentas y sin anuncios dentro del programa.</p>
+        <p class="eyebrow reveal">Gratis y de código abierto · Windows 10 y 11</p>
+        <h1 class="reveal">Cambia el tono de<br> cualquier app de Windows</h1>
+        <p class="lead reveal">Sube o baja el pitch de Spotify, YouTube, Discord o un juego mientras suena,<br> en tiempo real y sin cambiar la velocidad.</p>
         <div class="cta reveal">
           <a class="btn" href="https://github.com/Bombaxz/audio-pitcher/releases/latest/download/AudioPitcher-Setup.exe" data-download="hero">
-            <i class="ph ph-windows-logo"></i> Descargar para Windows
+            <i class="ph ph-windows-logo"></i> Descargar Audio Pitcher
           </a>
-          <p class="meta">Versión 1.0.0 · 47 MB · Incluye VB&#8209;CABLE</p>
+          <p class="meta">Versión 1.0.0 · 47 MB · incluye VB&#8209;CABLE</p>
         </div>
       </div>
-      <figure class="hero-shot reveal">
-        <img src="/img/app.png" alt="Ventana de Audio Pitcher procesando Spotify, con los controles de pitch y formant" width="290" height="341">
-      </figure>
+      <img class="hero-logo reveal" src="/img/logo-large.png" alt="Logo de Audio Pitcher" width="240" height="260">
+    </section>
+
+    <section class="showcase">
+      <div class="stage reveal">
+        <video class="demo" src="/img/demo-pitch.mp4" poster="/img/demo-pitch.jpg" width="290" height="341"
+               autoplay muted loop playsinline aria-label="Audio Pitcher subiendo y bajando el pitch"></video>
+      </div>
     </section>
 
     <section class="tagline" aria-label="Lema">
       <p class="words">Una perilla de tono para todo lo que suena en tu PC.</p>
     </section>
 
-    <section class="section" id="funciones">
+    <section class="section band" id="funciones">
       <h2 class="reveal">Todo lo que necesitas, nada más</h2>
-      <div class="grid">
-        <article class="card reveal">
-          <i class="ph ph-music-notes"></i>
-          <h3>Pitch y formant por separado</h3>
-          <p>Hasta 12 semitonos para arriba o para abajo. El formant mantiene la voz natural, sin efecto ardilla.</p>
-        </article>
-        <article class="card reveal">
-          <i class="ph ph-app-window"></i>
+      <div class="tiles">
+        <article class="tile reveal">
+          <video src="/img/demo-apps.mp4" poster="/img/demo-apps.jpg" autoplay muted loop playsinline
+                 aria-label="Cambiando entre Spotify, Discord y otras apps con distinto pitch"></video>
           <h3>Solo la app que elijas</h3>
-          <p>Cambia el tono de Spotify mientras Discord suena normal. O aplica el efecto a todo el sistema.</p>
+          <p>Cada app con su propio tono. Cambia Spotify mientras Discord suena normal, o aplica el efecto a todo el sistema.</p>
         </article>
-        <article class="card reveal">
-          <i class="ph ph-record"></i>
+        <article class="tile reveal">
+          <video src="/img/demo-themes.mp4" poster="/img/demo-themes.jpg" autoplay muted loop playsinline
+                 aria-label="Cambiando el tema, el color y el texto de la app"></video>
+          <h3>Temas y colores a tu gusto</h3>
+          <p>Cinco fondos, un control de color que tiñe toda la interfaz y texto con más o menos contraste.</p>
+        </article>
+        <article class="tile reveal">
+          <video src="/img/demo-formant.mp4" poster="/img/demo-formant.jpg" autoplay muted loop playsinline
+                 aria-label="Moviendo el control de formant"></video>
+          <h3>Formant por separado</h3>
+          <p>Ajusta el timbre aparte del tono para que la voz suene natural, o exagéralo a propósito.</p>
+        </article>
+        <article class="tile reveal">
+          <video src="/img/demo-fx.mp4" poster="/img/demo-fx.jpg" autoplay muted loop playsinline
+                 aria-label="Abriendo el panel de efectos y girando las perillas"></video>
+          <h3>Reverb, delay y chorus</h3>
+          <p>Efectos simples con perillas que se entienden a simple vista.</p>
+        </article>
+        <article class="tile reveal">
+          <video src="/img/demo-rec.mp4" poster="/img/demo-rec.jpg" autoplay muted loop playsinline
+                 aria-label="Grabando audio, recortando y escuchando antes de guardar"></video>
           <h3>Graba lo que suena</h3>
           <p>Graba el audio de la PC, recórtalo, escúchalo antes de guardar y expórtalo en WAV.</p>
-        </article>
-        <article class="card reveal">
-          <i class="ph ph-waveform"></i>
-          <h3>Reverb, delay y chorus</h3>
-          <p>Efectos simples para darle espacio al sonido, con perillas que se entienden a simple vista.</p>
         </article>
       </div>
     </section>
@@ -139,7 +157,7 @@
       </ul>
     </section>
 
-    <section class="section" id="preguntas">
+    <section class="section band" id="preguntas">
       <h2 class="reveal">Preguntas frecuentes</h2>
       <div class="faq">
         <details class="reveal">
