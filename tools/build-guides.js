@@ -318,6 +318,7 @@ function page({ lang, url, altUrl, title, desc, body, crumbs }) {
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
   <link rel="stylesheet" href="/styles.css">
   <script src="/analytics.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7073453212534025" crossorigin="anonymous"></script>
 </head>
 <body>
   <a class="skip" href="#main">${t.skip}</a>
