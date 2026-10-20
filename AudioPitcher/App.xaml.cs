@@ -16,7 +16,12 @@ public partial class App : System.Windows.Application
 
         // Cualquier error inesperado queda en el log para poder diagnosticarlo
         DispatcherUnhandledException += (_, e) => Log.Error("Error no controlado (UI)", e.Exception);
-        AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Error no controlado", e.ExceptionObject as Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            Log.Error("Error no controlado", e.ExceptionObject as Exception);
+            if (e.IsTerminating)
+                try { Dispatcher.Invoke(() => (MainWindow as AudioPitcher.MainWindow)?.EmergencyRestore()); } catch { }
+        };
         TaskScheduler.UnobservedTaskException += (_, e) => Log.Error("Error en tarea", e.Exception);
     }
 }

@@ -210,6 +210,20 @@ namespace AudioPitcher
             return fallback;
         }
 
+        /// <summary>IDs de todos los endpoints de salida de VB-CABLE (cualquier nombre).</summary>
+        public static HashSet<string> GetCableRenderIds()
+        {
+            var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                    if (IsVbCable(dev)) ids.Add(dev.ID);
+            }
+            catch (Exception ex) { Log.Error("GetCableRenderIds", ex); }
+            return ids;
+        }
+
         /// <summary>Primer dispositivo de salida real (no VB-CABLE) activo.</summary>
         public static MMDevice? FindRealRenderDevice(string? preferredId = null)
         {

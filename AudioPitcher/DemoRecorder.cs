@@ -31,9 +31,67 @@ public partial class MainWindow
         }
     }
 
+    // Experimento: ¿la captura por proceso sigue recibiendo audio si la app está silenciada?
+    // dotnet run -- --probe-mute zen   → resultado en %TEMP%\ap-probe.txt
+    private async Task ProbeMute(string processName)
+    {
+        var sb = new System.Text.StringBuilder();
+        var info = AudioEngine.GetActiveSessions().FirstOrDefault(s => s.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+        if (info == null) { sb.AppendLine("No hay sesión de audio para " + processName); }
+        else
+        {
+            float peak = 0, speakers = 0;
+            using var cap = new ProcessLoopbackCapture(info.ProcessId);
+            cap.DataAvailable += (_, e) =>
+            {
+                for (int i = 0; i + 4 <= e.BytesRecorded; i += 4)
+                    peak = Math.Max(peak, Math.Abs(BitConverter.ToSingle(e.Buffer, i)));
+            };
+            // Lo que realmente sale por los parlantes (loopback del dispositivo de salida)
+            // Solo la energía en la frecuencia del tono de prueba (Goertzel), para ignorar el resto del audio
+            using var spk = new NAudio.Wave.WasapiLoopbackCapture();
+            double freq = 6789, sr = spk.WaveFormat.SampleRate; int ch = spk.WaveFormat.Channels;
+            double coeff = 2 * Math.Cos(2 * Math.PI * freq / sr);
+            spk.DataAvailable += (_, e) =>
+            {
+                double s1 = 0, s2 = 0; int n = 0;
+                for (int i = 0; i + 4 * ch <= e.BytesRecorded; i += 4 * ch, n++)
+                {
+                    double x = BitConverter.ToSingle(e.Buffer, i);
+                    double s0 = x + coeff * s1 - s2; s2 = s1; s1 = s0;
+                }
+                if (n == 0) return;
+                double mag = Math.Sqrt(s1 * s1 + s2 * s2 - coeff * s1 * s2) * 2 / n;
+                speakers = Math.Max(speakers, (float)mag);
+            };
+            cap.StartRecording();
+            spk.StartRecording();
+            async Task<string> Measure() { peak = 0; speakers = 0; await Task.Delay(2500); return $"captura {peak:0.000} | parlantes {speakers:0.000}"; }
+
+            sb.AppendLine($"Formato: {cap.WaveFormat}");
+            sb.AppendLine($"Normal:            {await Measure()}");
+            info.Session.SimpleAudioVolume.Mute = true;
+            sb.AppendLine($"App silenciada:    {await Measure()}");
+            info.Session.SimpleAudioVolume.Mute = false;
+            sb.AppendLine($"Restaurado:        {await Measure()}");
+            spk.StopRecording();
+            cap.StopRecording();
+        }
+        File.WriteAllText(Path.Combine(Path.GetTempPath(), "ap-probe.txt"), sb.ToString());
+    }
+
     private async Task RunDemoTools()
     {
         var args = Environment.GetCommandLineArgs();
+        int pm = Array.IndexOf(args, "--probe-mute");
+        if (pm >= 0 && pm + 1 < args.Length)
+        {
+            _demoMode = true;
+            await Task.Delay(2000);
+            await ProbeMute(args[pm + 1]);
+            Close();
+            return;
+        }
         int s = Array.IndexOf(args, "--screenshot");
         int r = Array.IndexOf(args, "--record");
         if (s < 0 && r < 0) return;

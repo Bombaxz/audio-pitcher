@@ -66,7 +66,7 @@ public partial class MainWindow : Window
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
-            RestoreRouting();
+            RestoreAllRoutings("cierre");
             FixDefaultOutputIfCable(onExit: true);
             SaveSettings();
             Log.Info("Cierre");
@@ -74,6 +74,12 @@ public partial class MainWindow : Window
             _trayIcon?.Dispose(); StopPreview(); _recorder.Dispose(); _engine.Dispose();
         };
         InitTray();
+        // Apagado o cierre de sesión de Windows con la app abierta
+        System.Windows.Application.Current.SessionEnding += (_, _) =>
+        {
+            RestoreAllRoutings("Windows se apaga");
+            FixDefaultOutputIfCable(onExit: true);
+        };
     }
 
     // ── Actualizaciones ───────────────────────────────────────────────────────
@@ -663,8 +669,30 @@ public partial class MainWindow : Window
     private void RestoreRouting()
     {
         if (_routedPid == 0) return;
-        try { AudioPolicyConfig.SetDefaultEndpoint(_routedPid, ""); } catch { }
+        try
+        {
+            AudioPolicyConfig.SetDefaultEndpoint(_routedPid, "");
+            Log.Info($"Ruteo devuelto: pid {_routedPid} ({_selectedAppName})");
+        }
+        catch (Exception ex) { Log.Error($"No se pudo devolver el ruteo de pid {_routedPid} ({_selectedAppName})", ex); }
         _routedPid = 0;
+    }
+
+    /// <summary>
+    /// Devuelve TODAS las apps que estén mandando audio a VB-CABLE, no solo la actual
+    /// (cubre apps reiniciadas con otro PID y cierres sucios anteriores).
+    /// </summary>
+    public void RestoreAllRoutings(string reason)
+    {
+        Log.Info($"Devolviendo ruteos ({reason})");
+        RestoreRouting();
+        SweepOrphanRoutings(AudioEngine.GetActiveSessions());
+    }
+
+    /// <summary>Último intento si la app se cae: que nadie quede sin sonido.</summary>
+    public void EmergencyRestore()
+    {
+        try { RestoreAllRoutings("error inesperado"); FixDefaultOutputIfCable(onExit: true); } catch { }
     }
 
     /// <summary>Limpia ruteos al cable que quedaron de sesiones anteriores (cierre sucio).</summary>
@@ -672,17 +700,21 @@ public partial class MainWindow : Window
     {
         try
         {
-            using var cable = AudioEngine.FindCableRenderDevice();
-            if (cable == null) return;
+            var cableIds = AudioEngine.GetCableRenderIds();
+            if (cableIds.Count == 0) return;
             foreach (var it in items)
             {
                 if (it.ProcessId == 0 || it.ProcessId == _routedPid) continue;
-                if (string.Equals(AudioPolicyConfig.GetDefaultEndpoint(it.ProcessId), cable.ID,
-                                  StringComparison.OrdinalIgnoreCase))
-                    try { AudioPolicyConfig.SetDefaultEndpoint(it.ProcessId, ""); } catch { }
+                if (!cableIds.Contains(AudioPolicyConfig.GetDefaultEndpoint(it.ProcessId))) continue;
+                try
+                {
+                    AudioPolicyConfig.SetDefaultEndpoint(it.ProcessId, "");
+                    Log.Info($"Ruteo huérfano devuelto: {it.ProcessName} (pid {it.ProcessId})");
+                }
+                catch (Exception ex) { Log.Error($"No se pudo devolver {it.ProcessName} (pid {it.ProcessId})", ex); }
             }
         }
-        catch { }
+        catch (Exception ex) { Log.Error("SweepOrphanRoutings", ex); }
     }
 
     private void AppCombo_DropDownOpened(object sender, EventArgs e)
