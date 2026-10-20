@@ -29,6 +29,13 @@ if (install) {
   install.addEventListener('click', (e) => { if (e.target === install) install.close(); });
 }
 
+// Clics en donaciones (se cuentan cuando esté cargado Google Analytics)
+document.querySelectorAll('[data-donate]').forEach((a) => {
+  a.addEventListener('click', () => {
+    if (typeof window.gtag === 'function') window.gtag('event', 'donate_click', { platform: a.dataset.donate });
+  });
+});
+
 // Conteo de descargas (se activa cuando esté cargado Google Analytics)
 document.querySelectorAll('[data-download]').forEach((a) => {
   a.addEventListener('click', () => {

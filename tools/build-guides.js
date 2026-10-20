@@ -309,8 +309,9 @@ function page({ lang, url, altUrl, title, desc, body, crumbs }) {
   <meta property="og:description" content="${desc}">
   <meta property="og:url" content="${SITE}${url}">
   <meta property="og:image" content="${SITE}/img/og.png">
-  <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">

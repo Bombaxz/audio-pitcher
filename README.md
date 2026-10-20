@@ -43,6 +43,10 @@ powershell -ExecutionPolicy Bypass -File installer\build.ps1
 | `installer/` | Script de Inno Setup y `build.ps1`. |
 | `assets/` | Logo en alta resolución. |
 
+## Apoyar el proyecto
+
+Audio Pitcher es gratis. Si te sirve, podés [invitarme un cafecito](https://cafecito.app/labalaseraa) ☕
+
 ## Soporte
 
 Es un proyecto personal y gratuito. Podés reportar errores en [Issues](https://github.com/Bombaxz/audio-pitcher/issues), pero no hay soporte garantizado.
