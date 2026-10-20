@@ -66,8 +66,10 @@ public partial class MainWindow : Window
         Loaded += OnLoaded;
         Closed += (_, _) =>
         {
-            SaveSettings();
             RestoreRouting();
+            FixDefaultOutputIfCable(onExit: true);
+            SaveSettings();
+            Log.Info("Cierre");
             _deviceWatcher?.Dispose();
             _trayIcon?.Dispose(); StopPreview(); _recorder.Dispose(); _engine.Dispose();
         };
@@ -160,6 +162,49 @@ public partial class MainWindow : Window
             : $"https://github.com/{UpdateService.Repo}/blob/main/THIRD-PARTY-NOTICES.txt");
     }
 
+    // ── Salida de Windows atrapada en VB-CABLE ───────────────────────────────
+    // Si Windows quedó mandando todo al cable (lo hace a veces el instalador de VB-CABLE),
+    // al cerrar Audio Pitcher no se escucharía nada. Se vuelve a la salida real:
+    // al abrir (salvo en modo Sistema, que necesita el cable) y siempre al cerrar.
+    private string _lastRealOutputId = "";
+
+    private void FixDefaultOutputIfCable(bool onExit)
+    {
+        try
+        {
+            using var def = AudioEngine.GetDefaultRender();
+            if (def == null) return;
+            if (!AudioEngine.IsVbCable(def)) { _lastRealOutputId = def.ID; return; }
+            if (!onExit && _routedPid == 0 && string.IsNullOrEmpty(_targetProcessName)) return; // modo Sistema
+
+            using var real = AudioEngine.FindRealRenderDevice(_lastRealOutputId);
+            if (real == null) { Log.Warn("La salida de Windows es VB-CABLE y no hay otra salida activa"); return; }
+            AudioPolicyConfig.SetSystemDefaultRender(real.ID);
+            _lastRealOutputId = real.ID;
+            Log.Info($"Salida de Windows cambiada de '{def.FriendlyName}' a '{real.FriendlyName}' ({(onExit ? "al cerrar" : "al abrir")})");
+        }
+        catch (Exception ex) { Log.Error("No se pudo corregir la salida predeterminada", ex); }
+    }
+
+    private void ReportLink_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string path = Log.ExportReport();
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+            System.Windows.MessageBox.Show(
+                "Se guardó un reporte en tu Escritorio:\n" + System.IO.Path.GetFileName(path) + "\n\n" +
+                "Mandáselo a quien te pasó el programa, o adjuntalo en GitHub (Issues).\n" +
+                "Tiene datos del programa y de tus dispositivos de audio, nada personal.",
+                "Reporte listo", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("No se pudo crear el reporte: " + ex.Message, "Audio Pitcher",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
 #if DEBUG
@@ -206,6 +251,8 @@ public partial class MainWindow : Window
         }
 
         LoadSettings();
+        Log.Startup();
+        FixDefaultOutputIfCable(onExit: false);
         StartEngine();
 
         // Seguir en vivo el dispositivo predeterminado de Windows
@@ -245,26 +292,32 @@ public partial class MainWindow : Window
 
     // ── VB-Cable check ───────────────────────────────────────────────────────
 
-    private static bool IsVBCableInstalled()
-    {
-        for (int i = 0; i < NAudio.Wave.WaveOut.DeviceCount; i++)
-        {
-            var cap = NAudio.Wave.WaveOut.GetCapabilities(i);
-            if (cap.ProductName.Contains("CABLE", StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        for (int i = 0; i < NAudio.Wave.WaveIn.DeviceCount; i++)
-        {
-            var cap = NAudio.Wave.WaveIn.GetCapabilities(i);
-            if (cap.ProductName.Contains("CABLE", StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-        return false;
-    }
-
     private async void CheckVBCable()
     {
-        if (IsVBCableInstalled()) return;
+        var status = AudioEngine.GetCableStatus();
+        if (status == AudioEngine.CableStatus.Ok) return;
+        Log.Warn($"VB-CABLE no disponible: {status}");
+
+        if (status == AudioEngine.CableStatus.NeedsRestart)
+        {
+            var r = System.Windows.MessageBox.Show(
+                "VB-CABLE está instalado, pero Windows todavía no lo activó.\n\n" +
+                "Hay que reiniciar la PC una vez para que funcione. ¿Reiniciar ahora?",
+                "Falta reiniciar", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (r == MessageBoxResult.Yes)
+                Process.Start(new ProcessStartInfo("shutdown", "/r /t 5") { CreateNoWindow = true, UseShellExecute = false });
+            return;
+        }
+        if (status == AudioEngine.CableStatus.Disabled)
+        {
+            System.Windows.MessageBox.Show(
+                "VB-CABLE está desactivado en Windows.\n\n" +
+                "Se va a abrir la configuración de sonido: en las pestañas Reproducción y Grabación, " +
+                "hacé clic derecho en \"CABLE\" y elegí \"Habilitar\".",
+                "VB-CABLE desactivado", MessageBoxButton.OK, MessageBoxImage.Warning);
+            try { Process.Start(new ProcessStartInfo("control", "mmsys.cpl") { UseShellExecute = true }); } catch { }
+            return;
+        }
 
         var result = System.Windows.MessageBox.Show(
             "VB-Cable no está instalado.\n\n" +
@@ -552,6 +605,7 @@ public partial class MainWindow : Window
             }
             AudioPolicyConfig.SetDefaultEndpoint(sel.ProcessId, cable.ID);
             _routedPid = sel.ProcessId;
+            FixDefaultOutputIfCable(onExit: false);
 
             _recentApps.RemoveAll(n => n.Equals(sel.ProcessName, StringComparison.OrdinalIgnoreCase));
             _recentApps.Insert(0, sel.ProcessName);
@@ -1146,6 +1200,7 @@ public partial class MainWindow : Window
             _engine.PitchEngine = (AudioEngine.PitchEngineMode)s.PitchEngine;
             UpdateEngineButtons(s.PitchEngine);
             _minimizeToTray = s.MinimizeToTray;
+            _lastRealOutputId = s.LastRealOutputId;
             UpdateMinimizeButtons();
 
             // Restore output device by name
@@ -1182,6 +1237,7 @@ public partial class MainWindow : Window
         {
             PitchEngine      = (int)_engine.PitchEngine,
             MinimizeToTray   = _minimizeToTray,
+            LastRealOutputId = _lastRealOutputId,
             SkippedUpdateVersion = _skippedUpdate,
             HueShift         = ThemeService.HueShift,
             BgPreset         = ThemeService.BgPreset,
@@ -1263,6 +1319,7 @@ public partial class MainWindow : Window
 
     private void SetError(string msg)
     {
+        Log.Error(msg);
         StatusLogo.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushRed");
         StatusLabel.Foreground = new SolidColorBrush(WpfColor.FromRgb(0xF3, 0x8B, 0xA8));
         StatusLabel.Text = $"Error: {msg}";

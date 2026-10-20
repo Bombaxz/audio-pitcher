@@ -14,6 +14,7 @@ namespace AudioPitcher
         public int    TextBrightness   { get; set; } = 50;
         public bool   MinimizeToTray   { get; set; } = false;
         public string SkippedUpdateVersion { get; set; } = "";
+        public string LastRealOutputId { get; set; } = "";   // última salida real (no VB-CABLE)
         public string OutputDeviceName { get; set; } = "";
         public string TargetProcessName { get; set; } = "";   // "" = VB-Cable
         public List<string> RecentApps { get; set; } = new(); // últimas apps ruteadas, más reciente primero

@@ -147,36 +147,91 @@ namespace AudioPitcher
             return list;
         }
 
-        public static bool IsCableInstalled()
+        // VB-CABLE se identifica por la descripción del driver ("VB-Audio Virtual Cable"):
+        // el nombre del endpoint cambia según la versión ("CABLE Input" o "CABLE In 16ch").
+        // Excluye las variantes A/B y Voicemeeter, que tienen otra descripción.
+        public static bool IsVbCable(MMDevice dev)
+        {
+            try { return dev.FriendlyName.Contains("VB-Audio Virtual Cable", StringComparison.OrdinalIgnoreCase); }
+            catch { return false; }
+        }
+
+        public enum CableStatus { Ok, NeedsRestart, Disabled, Missing }
+
+        /// <summary>Estado de VB-CABLE mirando todos los estados del endpoint, no solo los activos.</summary>
+        public static CableStatus GetCableStatus()
         {
             try
             {
                 using var enumerator = new MMDeviceEnumerator();
-                foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
-                    if (dev.FriendlyName.Contains("CABLE Output", StringComparison.OrdinalIgnoreCase))
-                        return true;
+                bool render = false, capture = false, disabled = false, notPresent = false;
+                foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.All, DeviceState.All))
+                {
+                    if (!IsVbCable(dev)) continue;
+                    var state = dev.State;
+                    if (state == DeviceState.Active)
+                    {
+                        if (dev.DataFlow == DataFlow.Render) render = true; else capture = true;
+                    }
+                    else if (state == DeviceState.Disabled) disabled = true;
+                    else notPresent = true;
+                }
+                if (render && capture) return CableStatus.Ok;
+                if (disabled) return CableStatus.Disabled;
+                if (notPresent) return CableStatus.NeedsRestart;
             }
-            catch { }
-            return false;
+            catch (Exception ex) { Log.Error("GetCableStatus", ex); }
+            return CableStatus.Missing;
         }
+
+        public static bool IsCableInstalled() => GetCableStatus() == CableStatus.Ok;
 
         private static MMDevice? FindCableOutputDevice()
         {
             using var enumerator = new MMDeviceEnumerator();
             foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active))
-                if (dev.FriendlyName.Contains("CABLE Output", StringComparison.OrdinalIgnoreCase))
+                if (IsVbCable(dev))
                     return dev;
             return null;
         }
 
-        /// <summary>Endpoint de render del cable ("CABLE Input"), destino del ruteo por app.</summary>
+        /// <summary>Endpoint de render del cable, destino del ruteo por app.</summary>
         public static MMDevice? FindCableRenderDevice()
         {
             using var enumerator = new MMDeviceEnumerator();
+            MMDevice? fallback = null;
             foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
-                if (dev.FriendlyName.Contains("CABLE Input", StringComparison.OrdinalIgnoreCase))
-                    return dev;
-            return null;
+            {
+                if (!IsVbCable(dev)) continue;
+                // Preferir el estéreo clásico si existe; si no, "CABLE In 16ch"
+                if (dev.FriendlyName.StartsWith("CABLE Input", StringComparison.OrdinalIgnoreCase)) return dev;
+                fallback ??= dev;
+            }
+            return fallback;
+        }
+
+        /// <summary>Primer dispositivo de salida real (no VB-CABLE) activo.</summary>
+        public static MMDevice? FindRealRenderDevice(string? preferredId = null)
+        {
+            using var enumerator = new MMDeviceEnumerator();
+            MMDevice? first = null;
+            foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+            {
+                if (IsVbCable(dev)) continue;
+                if (preferredId != null && dev.ID == preferredId) return dev;
+                first ??= dev;
+            }
+            return first;
+        }
+
+        public static MMDevice? GetDefaultRender()
+        {
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                return enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+            }
+            catch { return null; }
         }
 
         // ── Start / Stop ─────────────────────────────────────────────────────

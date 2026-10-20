@@ -755,6 +755,10 @@
                     <Run Text="  ·  "/>
                     <Hyperlink Click="LicensesLink_Click" TextDecorations="{x:Null}"
                                Foreground="{DynamicResource BrushHint}">Licencias</Hyperlink>
+                    <Run Text="  ·  "/>
+                    <Hyperlink Click="ReportLink_Click" TextDecorations="{x:Null}"
+                               Foreground="{DynamicResource BrushHint}"
+                               ToolTip="Guarda un reporte en el Escritorio para enviarlo">Reportar un problema</Hyperlink>
                 </TextBlock>
 
             </StackPanel>

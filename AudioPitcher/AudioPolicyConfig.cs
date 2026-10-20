@@ -90,6 +90,34 @@ namespace AudioPitcher
             finally { if (hstr != IntPtr.Zero) DeleteHString(hstr); }
         }
 
+        // ── Salida predeterminada de todo el sistema ─────────────────────────
+        // IPolicyConfig (no documentada, estable desde Windows 7; la usan SoundSwitch/EarTrumpet).
+
+        private static readonly Guid CLSID_PolicyConfigClient = new("870af99c-171d-4f9e-af0d-e63df40c2bc9");
+        private static readonly Guid IID_IPolicyConfig        = new("f8679f50-850a-41cf-9c72-430f290290c8");
+        private const int SlotSetDefaultEndpoint = 13;   // IUnknown (3) + 10 métodos previos
+
+        /// <summary>Pone mmDeviceId como salida predeterminada de Windows en todos los roles.</summary>
+        public static void SetSystemDefaultRender(string mmDeviceId)
+        {
+            var clsid = CLSID_PolicyConfigClient;
+            var iid   = IID_IPolicyConfig;
+            Marshal.ThrowExceptionForHR(CoCreateInstance(ref clsid, IntPtr.Zero, 1 /* CLSCTX_INPROC_SERVER */, ref iid, out IntPtr pc));
+            try
+            {
+                var setFn = GetMethod<SetDefaultEndpointFn>(pc, SlotSetDefaultEndpoint);
+                foreach (int role in AllRoles)
+                    Marshal.ThrowExceptionForHR(setFn(pc, mmDeviceId, role));
+            }
+            finally { Marshal.Release(pc); }
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate int SetDefaultEndpointFn(IntPtr self, [MarshalAs(UnmanagedType.LPWStr)] string deviceId, int role);
+
+        [DllImport("ole32.dll", ExactSpelling = true)]
+        private static extern int CoCreateInstance(ref Guid clsid, IntPtr outer, int context, ref Guid iid, out IntPtr obj);
+
         // ── Interop ──────────────────────────────────────────────────────────
 
         private static IntPtr GetFactory()

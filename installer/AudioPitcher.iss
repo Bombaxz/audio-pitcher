@@ -53,6 +53,10 @@ spanish.VBCableStatus=Instalando VB-CABLE de VB-Audio...
 english.VBCableStatus=Installing VB-CABLE by VB-Audio...
 spanish.LaunchApp=Abrir Audio Pitcher
 english.LaunchApp=Launch Audio Pitcher
+spanish.RestartNow=Reiniciar la PC ahora (recomendado)
+english.RestartNow=Restart the PC now (recommended)
+spanish.RestartInfo=Se instaló VB-CABLE. Para que Audio Pitcher funcione hay que reiniciar la PC una vez: si no reinicias, puede que no se escuche nada.
+english.RestartInfo=VB-CABLE was installed. Audio Pitcher needs one restart to work: if you don't restart, you may hear nothing.
 spanish.DeleteSettings=¿Borrar también tu configuración de Audio Pitcher (tema, colores, apps favoritas)?
 english.DeleteSettings=Also delete your Audio Pitcher settings (theme, colors, favorite apps)?
 
@@ -143,9 +147,34 @@ begin
   VBCableJustInstalled := True;
 end;
 
-function NeedRestart: Boolean;
+// Reinicio: casilla propia en la página final, marcada por defecto, solo si se instaló VB-CABLE
+var
+  RestartCheck: TNewCheckBox;
+
+procedure CurPageChanged(CurPageID: Integer);
 begin
-  Result := VBCableJustInstalled;
+  if (CurPageID = wpFinished) and VBCableJustInstalled and (RestartCheck = nil) then
+  begin
+    WizardForm.FinishedLabel.Caption := CustomMessage('RestartInfo');
+    WizardForm.RunList.Visible := False;
+    RestartCheck := TNewCheckBox.Create(WizardForm);
+    RestartCheck.Parent  := WizardForm.FinishedPage;
+    RestartCheck.Left    := WizardForm.FinishedLabel.Left;
+    RestartCheck.Top     := WizardForm.FinishedLabel.Top + WizardForm.FinishedLabel.Height + ScaleY(24);
+    RestartCheck.Width   := WizardForm.FinishedPage.ClientWidth - RestartCheck.Left;
+    RestartCheck.Height  := ScaleY(20);
+    RestartCheck.Caption := CustomMessage('RestartNow');
+    RestartCheck.Checked := True;
+  end;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  Code: Integer;
+begin
+  Result := True;
+  if (CurPageID = wpFinished) and (RestartCheck <> nil) and RestartCheck.Checked then
+    Exec(ExpandConstant('{sys}\shutdown.exe'), '/r /t 5', '', SW_HIDE, ewNoWait, Code);
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
