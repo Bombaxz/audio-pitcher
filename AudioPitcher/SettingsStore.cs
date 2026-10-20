@@ -13,6 +13,7 @@ namespace AudioPitcher
         public int    TextColorMode    { get; set; } = 0;
         public int    TextBrightness   { get; set; } = 50;
         public bool   MinimizeToTray   { get; set; } = false;
+        public string Language         { get; set; } = "";   // "" = todavía no elegido → idioma de Windows
         public string SkippedUpdateVersion { get; set; } = "";
         public string LastRealOutputId { get; set; } = "";   // última salida real (no VB-CABLE)
         public string OutputDeviceName { get; set; } = "";

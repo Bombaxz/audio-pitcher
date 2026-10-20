@@ -95,7 +95,7 @@ public partial class MainWindow : Window
         var info = await UpdateService.CheckAsync();
         if (info == null) return;
         _pendingUpdate = info;
-        UpdateBtn.ToolTip = $"Actualizar a {info.Version.ToString(3)}";
+        UpdateBtn.ToolTip = Loc.T("UpdateTo", info.Version.ToString(3));
 
         // Se pregunta una sola vez por versión; si dice "Ahora no", queda el botón en el encabezado.
         string ver = info.Version.ToString(3);
@@ -199,14 +199,12 @@ public partial class MainWindow : Window
             string path = Log.ExportReport();
             Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
             System.Windows.MessageBox.Show(
-                "Se guardó un reporte en tu Escritorio:\n" + System.IO.Path.GetFileName(path) + "\n\n" +
-                "Mandáselo a quien te pasó el programa, o adjuntalo en GitHub (Issues).\n" +
-                "Tiene datos del programa y de tus dispositivos de audio, nada personal.",
-                "Reporte listo", MessageBoxButton.OK, MessageBoxImage.Information);
+                Loc.T("ReportReadyMsg", System.IO.Path.GetFileName(path)),
+                Loc.T("ReportReady"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show("No se pudo crear el reporte: " + ex.Message, "Audio Pitcher",
+            System.Windows.MessageBox.Show(Loc.T("ReportFailed", ex.Message), "Audio Pitcher",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -228,18 +226,13 @@ public partial class MainWindow : Window
             FormantSlider.IsEnabled        = false;
             FormantUnavailLabel.Visibility = Visibility.Visible;
             EngBtn0.IsEnabled              = false;
-            EngTxt0.Text                   = "RB (N/D)";
         }
         if (!AudioEngine.IsSignalsmithAvailable)
-        {
             EngBtn1.IsEnabled = false;
-            EngTxt1.Text      = "SS (N/D)";
-        }
         if (!AudioPolicyConfig.IsSupported)
-        {
             AppCombo.IsEnabled = false;
-            AppCombo.ToolTip   = "El ruteo por app no está disponible en esta versión de Windows.";
-        }
+        ApplyLanguageTexts();
+        Loc.Changed += OnLanguageChanged;
 
         // Set mutable brushes so animations can target them
         FxPill.Background = new SolidColorBrush(WpfColor.FromRgb(0x89, 0xB4, 0xFA));
@@ -263,7 +256,7 @@ public partial class MainWindow : Window
         if (SettingsStore.TakeUpdatedVersion() is string updated)
         {
             Log.Info($"Actualizado a {updated}");
-            StatusLabel.Text = $"Listo: actualizado a la versión {updated}.";
+            SetStatus(() => Loc.T("StatusUpdated", updated));
         }
 
         // Seguir en vivo el dispositivo predeterminado de Windows
@@ -312,9 +305,8 @@ public partial class MainWindow : Window
         if (status == AudioEngine.CableStatus.NeedsRestart)
         {
             var r = System.Windows.MessageBox.Show(
-                "VB-CABLE está instalado, pero Windows todavía no lo activó.\n\n" +
-                "Hay que reiniciar la PC una vez para que funcione. ¿Reiniciar ahora?",
-                "Falta reiniciar", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                Loc.T("CableRestartMsg"),
+                Loc.T("CableRestartTitle"), MessageBoxButton.YesNo, MessageBoxImage.Information);
             if (r == MessageBoxResult.Yes)
                 Process.Start(new ProcessStartInfo("shutdown", "/r /t 5") { CreateNoWindow = true, UseShellExecute = false });
             return;
@@ -322,20 +314,15 @@ public partial class MainWindow : Window
         if (status == AudioEngine.CableStatus.Disabled)
         {
             System.Windows.MessageBox.Show(
-                "VB-CABLE está desactivado en Windows.\n\n" +
-                "Se va a abrir la configuración de sonido: en las pestañas Reproducción y Grabación, " +
-                "hacé clic derecho en \"CABLE\" y elegí \"Habilitar\".",
-                "VB-CABLE desactivado", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Loc.T("CableDisabledMsg"),
+                Loc.T("CableDisabledTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
             try { Process.Start(new ProcessStartInfo("control", "mmsys.cpl") { UseShellExecute = true }); } catch { }
             return;
         }
 
         var result = System.Windows.MessageBox.Show(
-            "VB-Cable no está instalado.\n\n" +
-            "Audio Pitcher necesita VB-Cable para funcionar como dispositivo virtual de audio. " +
-            "¿Querés instalarlo ahora?\n\n" +
-            "(Se descarga de vb-audio.com y requiere permisos de administrador)",
-            "VB-Cable no encontrado",
+            Loc.T("CableMissingMsg"),
+            Loc.T("CableMissingTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
@@ -346,7 +333,7 @@ public partial class MainWindow : Window
         {
             if (!System.IO.File.Exists(installerPath))
             {
-                SetError("Descargando VB-Cable…");
+                SetError("DownloadingCable");
                 installerPath = await DownloadVBCableSetup();
             }
 
@@ -358,9 +345,8 @@ public partial class MainWindow : Window
             if (proc != null) await Task.Run(proc.WaitForExit);
 
             System.Windows.MessageBox.Show(
-                "Instalación completada.\n\n" +
-                "Cerrá y volvé a abrir Audio Pitcher. Si el cable no aparece, reiniciá Windows.",
-                "VB-Cable instalado",
+                Loc.T("CableInstalledMsg"),
+                Loc.T("CableInstalledTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
         }
@@ -371,10 +357,8 @@ public partial class MainWindow : Window
         catch
         {
             System.Windows.MessageBox.Show(
-                "No se pudo descargar VB-Cable automáticamente.\n\n" +
-                "Se va a abrir la página oficial para que lo descargues manualmente:\n" +
-                "vb-audio.com/Cable",
-                "Error de descarga",
+                Loc.T("CableDownloadMsg"),
+                Loc.T("CableDownloadTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             try { Process.Start(new ProcessStartInfo("https://vb-audio.com/Cable/") { UseShellExecute = true }); }
@@ -433,9 +417,9 @@ public partial class MainWindow : Window
         }
 
         var menu = new System.Windows.Forms.ContextMenuStrip();
-        menu.Items.Add("Mostrar", null, (_, _) => RestoreFromTray());
+        _trayShowItem  = menu.Items.Add(Loc.T("TrayShow"), null, (_, _) => RestoreFromTray());
         menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-        menu.Items.Add("Cerrar", null, (_, _) => Dispatcher.Invoke(Close));
+        _trayCloseItem = menu.Items.Add(Loc.T("TrayClose"), null, (_, _) => Dispatcher.Invoke(Close));
 
         _trayIcon = new System.Windows.Forms.NotifyIcon
         {
@@ -446,6 +430,8 @@ public partial class MainWindow : Window
         };
         _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
     }
+
+    private System.Windows.Forms.ToolStripItem? _trayShowItem, _trayCloseItem;
 
     private void HideToTray()
     {
@@ -475,7 +461,7 @@ public partial class MainWindow : Window
             btns[i].BorderThickness = new Thickness(active ? 2 : 1);
             txts[i].SetResourceReference(TextBlock.ForegroundProperty, active ? "BrushText" : "BrushMuted");
         }
-        MinimizeBtn.ToolTip = _minimizeToTray ? "Esconder en la bandeja" : "Minimizar";
+        MinimizeBtn.ToolTip = Loc.T(_minimizeToTray ? "HideToTrayTip" : "MinimizeTip");
     }
 
     private void RestoreFromTray()
@@ -502,7 +488,7 @@ public partial class MainWindow : Window
     private void UpdatePinBtn()
     {
         PinBtn.SetResourceReference(ForegroundProperty, _isPinned ? "BrushBlue" : "BrushMuted");
-        PinBtn.ToolTip = _isPinned ? "Fijada al frente (clic para soltar)" : "No está fijada (clic para fijar)";
+        PinBtn.ToolTip = Loc.T(_isPinned ? "PinnedTip" : "UnpinnedTip");
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e)
@@ -520,13 +506,12 @@ public partial class MainWindow : Window
 
     // ── Devices ───────────────────────────────────────────────────────────────
 
-    private const string DefaultDeviceItem     = "Dispositivo predeterminado";
     private const string DefaultDeviceSentinel = "<default>";
 
     private void LoadOutputDevices()
     {
         var devices = AudioEngine.GetOutputDeviceNames();
-        var items = new List<string> { DefaultDeviceItem };
+        var items = new List<string> { Loc.T("DefaultDevice") };
         items.AddRange(devices);
         OutputCombo.ItemsSource = items;
         // Item 0 = default de Windows (índice -1 = wave mapper); selección inicial:
@@ -538,8 +523,6 @@ public partial class MainWindow : Window
     }
 
     // ── Selección de app (ruteo automático a VB-Cable) ────────────────────────
-
-    private const string SystemSourceName = "Sistema (VB-Cable)";
 
     private void LoadAppSessions()
     {
@@ -570,14 +553,14 @@ public partial class MainWindow : Window
             {
                 items.AddRange(visible);
                 if (_routedPid == 0 || !visible.Any(v => v.ProcessId == _routedPid))
-                    items.Add(new AudioSessionInfo { Name = SystemSourceName, ProcessId = 0 });
-                items.Add(new AudioSessionInfo { Name = "▾  Más opciones…", ProcessId = -1 });
+                    items.Add(new AudioSessionInfo { Name = Loc.T("SystemSource"), ProcessId = 0 });
+                items.Add(new AudioSessionInfo { Name = Loc.T("MoreOptions"), ProcessId = -1 });
             }
         }
         if (!collapsed)
         {
             items.AddRange(sorted);
-            items.Add(new AudioSessionInfo { Name = SystemSourceName, ProcessId = 0 });
+            items.Add(new AudioSessionInfo { Name = Loc.T("SystemSource"), ProcessId = 0 });
         }
 
         int idx = items.FindIndex(i => i.ProcessId > 0 && i.ProcessId == _routedPid);
@@ -611,7 +594,7 @@ public partial class MainWindow : Window
             using var cable = AudioEngine.FindCableRenderDevice();
             if (cable == null)
             {
-                SetError("VB-CABLE no encontrado. Instalá desde vb-audio.com/Cable");
+                SetError("CableNotFound");
                 return;
             }
             AudioPolicyConfig.SetDefaultEndpoint(sel.ProcessId, cable.ID);
@@ -622,7 +605,7 @@ public partial class MainWindow : Window
             _recentApps.Insert(0, sel.ProcessName);
             if (_recentApps.Count > 8) _recentApps.RemoveRange(8, _recentApps.Count - 8);
         }
-        catch (Exception ex) { SetError($"No se pudo rutear la app: {ex.Message}"); }
+        catch (Exception ex) { SetError("RouteFailed", ex.Message); }
     }
 
     // Apps típicas de audio: van arriba en el combo cuando no hay historial
@@ -809,7 +792,7 @@ public partial class MainWindow : Window
 
             SetRunning();
         }
-        catch (Exception ex) { SetError(ex.Message); }
+        catch (Exception ex) { SetError("Raw", ex.Message); }
     }
 
     private static float GetSliderVal(Slider s) =>
@@ -1274,6 +1257,7 @@ public partial class MainWindow : Window
         {
             PitchEngine      = (int)_engine.PitchEngine,
             MinimizeToTray   = _minimizeToTray,
+            Language         = Loc.Current,
             LastRealOutputId = _lastRealOutputId,
             SkippedUpdateVersion = _skippedUpdate,
             HueShift         = ThemeService.HueShift,
@@ -1342,24 +1326,82 @@ public partial class MainWindow : Window
     {
         StatusLogo.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushBlue");
         StatusLabel.SetResourceReference(TextBlock.ForegroundProperty, "BrushMuted");
-        StatusLabel.Text = _routedPid > 0
-            ? $"Procesando {_selectedAppName} en vivo."
-            : "Procesando audio en vivo.";
+        string app = _selectedAppName;
+        SetStatus(_routedPid > 0
+            ? () => Loc.T("StatusProcessingApp", app)
+            : () => Loc.T("StatusProcessing"));
     }
 
     private void SetStopped()
     {
         StatusLogo.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushMuted");
         StatusLabel.SetResourceReference(TextBlock.ForegroundProperty, "BrushMuted");
-        StatusLabel.Text = "Sin audio. Revisá el enrutamiento.";
+        SetStatus(() => Loc.T("StatusNoAudio"));
     }
 
-    private void SetError(string msg)
+    // key de Loc; el log queda siempre en español
+    private void SetError(string key, params object[] args)
     {
-        Log.Error(msg);
+        Log.Error(Loc.Es(key, args));
         StatusLogo.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushRed");
         StatusLabel.Foreground = new SolidColorBrush(WpfColor.FromRgb(0xF3, 0x8B, 0xA8));
-        StatusLabel.Text = $"Error: {msg}";
+        SetStatus(() => Loc.T("StatusError", Loc.T(key, args)));
+    }
+
+    // El texto se guarda como función para regenerarlo al cambiar de idioma
+    private Func<string>? _statusText;
+
+    private void SetStatus(Func<string> text)
+    {
+        _statusText = text;
+        StatusLabel.Text = text();
+    }
+
+    // ── Idioma ────────────────────────────────────────────────────────────────
+
+    private void Language_Click(object sender, MouseButtonEventArgs e)
+    {
+        Loc.Set(((FrameworkElement)sender).Tag?.ToString() ?? "es");
+        e.Handled = true;
+    }
+
+    private void OnLanguageChanged()
+    {
+        ApplyLanguageTexts();
+        UpdatePinBtn();
+        UpdateMinimizeButtons();
+        if (_statusText != null) StatusLabel.Text = _statusText();
+
+        bool loading = _loading;
+        _loading = true;
+        int outIdx = OutputCombo.SelectedIndex;
+        LoadOutputDevices();
+        OutputCombo.SelectedIndex = outIdx;
+        _loading = loading;
+        LoadAppSessions();
+
+        SaveSettings();
+    }
+
+    // Textos que pone el código (los del XAML se actualizan solos por DynamicResource)
+    private void ApplyLanguageTexts()
+    {
+        if (!AudioEngine.IsRubberBandAvailable)  EngTxt0.Text = Loc.T("RbNA");
+        if (!AudioEngine.IsSignalsmithAvailable) EngTxt1.Text = Loc.T("SsNA");
+        if (!AudioPolicyConfig.IsSupported)      AppCombo.ToolTip = Loc.T("NoPerAppRouting");
+        if (_pendingUpdate != null) UpdateBtn.ToolTip = Loc.T("UpdateTo", _pendingUpdate.Version.ToString(3));
+        if (_trayShowItem  != null) _trayShowItem.Text  = Loc.T("TrayShow");
+        if (_trayCloseItem != null) _trayCloseItem.Text = Loc.T("TrayClose");
+
+        var btns = new[] { LangBtn0, LangBtn1 };
+        var txts = new[] { LangTxt0, LangTxt1 };
+        for (int i = 0; i < 2; i++)
+        {
+            bool active = (string)btns[i].Tag == Loc.Current;
+            btns[i].SetResourceReference(Border.BorderBrushProperty, active ? "BrushBlue" : "BrushBorder");
+            btns[i].BorderThickness = new Thickness(active ? 2 : 1);
+            txts[i].SetResourceReference(TextBlock.ForegroundProperty, active ? "BrushText" : "BrushMuted");
+        }
     }
 
     // ── Window chrome ─────────────────────────────────────────────────────────
@@ -1725,10 +1767,10 @@ public partial class MainWindow : Window
     {
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Title      = "Guardar grabación",
+            Title      = Loc.T("SaveRecording"),
             Filter     = "WAV audio (*.wav)|*.wav",
             DefaultExt = ".wav",
-            FileName   = $"grabacion_{DateTime.Now:yyyyMMdd_HHmmss}",
+            FileName   = $"{Loc.T("RecordingFile")}_{DateTime.Now:yyyyMMdd_HHmmss}",
         };
         if (dlg.ShowDialog() != true) return;
         _recorder.SaveWav(dlg.FileName, Waveform.TrimStartRatio, Waveform.TrimEndRatio, _normEnabled);
@@ -1862,7 +1904,7 @@ public partial class MainWindow : Window
         };
         var hexLabel = new System.Windows.Controls.TextBlock
         {
-            FontSize = 10, VerticalAlignment = VerticalAlignment.Center, Text = "Arrastrá para elegir"
+            FontSize = 10, VerticalAlignment = VerticalAlignment.Center, Text = Loc.T("DragToPick")
         };
         hexLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "BrushSubtext");
         var info = new System.Windows.Controls.StackPanel

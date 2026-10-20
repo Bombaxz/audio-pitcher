@@ -24,4 +24,10 @@ public partial class App : System.Windows.Application
         };
         TaskScheduler.UnobservedTaskException += (_, e) => Log.Error("Error en tarea", e.Exception);
     }
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        Loc.Init(SettingsStore.Load().Language);
+        base.OnStartup(e);
+    }
 }

@@ -36,7 +36,6 @@ const GUIDES = [
       title: 'Getting started with Audio Pitcher',
       desc: 'Install Audio Pitcher, pick an app, change its pitch, choose where you hear it, and use effects and recording.',
       body: `
-<div class="note"><p>Audio Pitcher's interface is in Spanish for now, so this guide shows the Spanish labels with their meaning.</p></div>
 <h2>1. Install</h2>
 <ol>
   <li>Download <b>AudioPitcher-Setup.exe</b> and open it. If Windows shows "Windows protected your PC", click <b>More info</b> and then <b>Run anyway</b>.</li>
@@ -47,7 +46,7 @@ const GUIDES = [
 <p>Under <b>APP</b> you'll see the apps that are playing sound right now. Pick the one you want to change, for example Spotify.</p>
 <ul>
   <li>If your app isn't listed, press play in it and open the list again: Windows only shows apps once they start playing.</li>
-  <li><b>Más opciones…</b> (more options), at the bottom of the list, shows every app with audio.</li>
+  <li><b>More options…</b> at the bottom of the list shows every app with audio.</li>
   <li>Click the star next to an app to keep it at the top.</li>
 </ul>
 ${fig('/img/demo-apps.jpg', 'Picking the app that Audio Pitcher will process')}
@@ -59,9 +58,9 @@ ${fig('/img/demo-apps.jpg', 'Picking the app that Audio Pitcher will process')}
   <li><b>FORMANT</b> changes the timbre of voices separately. Use it to keep voices natural when you move the pitch a lot.</li>
 </ul>
 <h2>4. Choose where you hear it</h2>
-<p>Open settings (gear icon) and look at <b>SALIDA DE AUDIO</b> (audio output). Pick your headphones or speakers. <b>Dispositivo predeterminado</b> (default device) follows whatever Windows is using. Never pick an option that says <b>CABLE</b> there, or you'll hear nothing.</p>
+<p>Open settings (gear icon) and look at <b>AUDIO OUTPUT</b>. Pick your headphones or speakers. <b>Default device</b> follows whatever Windows is using. Never pick an option that says <b>CABLE</b> there, or you'll hear nothing.</p>
 <h2>5. Process all your PC audio</h2>
-<p>To change the pitch of everything at once, pick <b>Sistema (VB&#8209;Cable)</b> under APP and set <b>CABLE Input</b> as the output in Windows (speaker icon on the taskbar). When you close Audio Pitcher, it switches Windows back to your headphones or speakers.</p>
+<p>To change the pitch of everything at once, pick <b>System (VB&#8209;Cable)</b> under APP and set <b>CABLE Input</b> as the output in Windows (speaker icon on the taskbar). When you close Audio Pitcher, it switches Windows back to your headphones or speakers.</p>
 <h2>6. Effects</h2>
 <p>Turn on <b>FX</b> and open the panel with the small arrow to add reverb, delay or chorus. Each effect has a <b>WET</b> knob that controls how much of it you hear.</p>
 <h2>7. Record</h2>
@@ -69,13 +68,13 @@ ${fig('/img/demo-apps.jpg', 'Picking the app that Audio Pitcher will process')}
   <li>Click the record button at the top. It starts recording what plays on your PC.</li>
   <li>Stop it with <b>⏹</b>. Drag the red edges of the waveform to trim the start and end.</li>
   <li>Press <b>▶</b> to listen to exactly what will be saved. <b>NORM</b> evens out the volume.</li>
-  <li><b>Guardar WAV</b> exports the file.</li>
+  <li><b>Save WAV</b> exports the file.</li>
 </ol>
 <h2>8. Window options</h2>
 <ul>
   <li>The pin icon keeps Audio Pitcher above other windows.</li>
   <li><b>—</b> minimizes it. In settings you can choose whether it goes to the taskbar or the tray next to the clock.</li>
-  <li>In settings you can also change the theme, the colors and the text contrast.</li>
+  <li>In settings you can also change the language (English or Spanish), the theme, the colors and the text contrast.</li>
 </ul>`,
     },
     es: {
@@ -120,7 +119,7 @@ ${fig('/img/demo-apps.jpg', 'Eligiendo la app que va a procesar Audio Pitcher')}
 <ul>
   <li>El ícono del pin deja Audio Pitcher por encima de las demás ventanas.</li>
   <li><b>—</b> lo minimiza. En la configuración eliges si va a la barra de tareas o a la bandeja, junto al reloj.</li>
-  <li>En la configuración también cambias el tema, los colores y el contraste del texto.</li>
+  <li>En la configuración también cambias el idioma (español o inglés), el tema, los colores y el contraste del texto.</li>
 </ul>`,
     },
   },
@@ -131,7 +130,7 @@ ${fig('/img/demo-apps.jpg', 'Eligiendo la app que va a procesar Audio Pitcher')}
       desc: 'Fix the most common Audio Pitcher problems: hearing nothing, hearing the song twice, VB-CABLE not detected and Discord streams.',
       body: `
 <h2>I hear nothing after installing</h2>
-<p>Restart your PC. VB&#8209;CABLE is a driver and Windows only activates it after a restart. If Audio Pitcher says <b>"VB-CABLE está instalado, pero Windows todavía no lo activó"</b> (VB-CABLE is installed but Windows hasn't activated it yet), that's exactly what's missing.</p>
+<p>Restart your PC. VB&#8209;CABLE is a driver and Windows only activates it after a restart. If Audio Pitcher says <b>"VB-CABLE is installed, but Windows hasn't activated it yet"</b>, that's exactly what's missing.</p>
 <h2>I hear nothing after closing Audio Pitcher</h2>
 <p>Windows may have left VB&#8209;CABLE as your main output. Click the speaker icon on the taskbar, open the device list and pick your headphones or speakers. Since version 1.0.3, Audio Pitcher does this for you when it closes.</p>
 <p>If only one app stays silent, open <b>Settings › System › Sound › Volume mixer</b>, find that app and set its output to <b>Default</b>.</p>
@@ -139,7 +138,7 @@ ${fig('/img/demo-apps.jpg', 'Eligiendo la app que va a procesar Audio Pitcher')}
 <ul>
   <li>Pick the app again in the APP list so Audio Pitcher reconnects it.</li>
   <li>In the Windows volume mixer, while Audio Pitcher is open, the app you're processing should be playing to <b>CABLE</b>. If it isn't, close and reopen Audio Pitcher.</li>
-  <li>In <b>Sistema</b> (system) mode, Windows' output must be <b>CABLE Input</b>.</li>
+  <li>In <b>System</b> mode, Windows' output must be <b>CABLE Input</b>.</li>
 </ul>
 <h2>Audio Pitcher says VB-CABLE is not installed</h2>
 <ul>
@@ -148,13 +147,13 @@ ${fig('/img/demo-apps.jpg', 'Eligiendo la app que va a procesar Audio Pitcher')}
   <li>If it really isn't installed, run the Audio Pitcher installer again and keep VB&#8209;CABLE checked.</li>
 </ul>
 <h2>My app doesn't show up in the list</h2>
-<p>Press play in it and open the list again. Windows only creates the app's audio once it starts playing. Also check <b>Más opciones…</b> (more options) at the bottom of the list.</p>
+<p>Press play in it and open the list again. Windows only creates the app's audio once it starts playing. Also check <b>More options…</b> at the bottom of the list.</p>
 <h2>I hear echo or feedback</h2>
-<p>In Audio Pitcher's settings, <b>SALIDA DE AUDIO</b> (audio output) must be your headphones or speakers, never an option that says CABLE.</p>
+<p>In Audio Pitcher's settings, <b>AUDIO OUTPUT</b> must be your headphones or speakers, never an option that says CABLE.</p>
 <h2>On Discord, people hear the song twice when I share my whole screen</h2>
 <p>When you share the entire screen, Discord captures the original audio of every app directly, even if it plays through VB&#8209;CABLE, plus what Audio Pitcher plays. Audio Pitcher can't hide the original from Discord. Sharing a single window instead of the whole screen avoids the doubled sound, but then Audio Pitcher's audio isn't included in the stream either.</p>
 <h2>Still not working?</h2>
-<p>In Audio Pitcher's settings, at the very bottom, click <b>Reportar un problema</b> (report a problem). It saves a report on your Desktop with the app and audio device details (nothing personal). Attach it to a new issue on <a href="https://github.com/Bombaxz/audio-pitcher/issues" rel="noopener">GitHub</a>.</p>`,
+<p>In Audio Pitcher's settings, at the very bottom, click <b>Report a problem</b>. It saves a report on your Desktop with the app and audio device details (nothing personal). Attach it to a new issue on <a href="https://github.com/Bombaxz/audio-pitcher/issues" rel="noopener">GitHub</a>.</p>`,
     },
     es: {
       title: 'Solución de problemas: no se escucha, se escucha doble y VB-CABLE',

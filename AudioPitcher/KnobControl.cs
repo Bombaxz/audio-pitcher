@@ -294,7 +294,7 @@ namespace AudioPitcher
 
             var hint = new TextBlock
             {
-                Text = "Clic para cambiar color del arco",
+                Text = Loc.T("KnobTip"),
                 Foreground = new SolidColorBrush(GetTheme("BrushMuted", WpfColor.FromRgb(0x6C, 0x70, 0x86))),
                 FontSize = 8, TextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)

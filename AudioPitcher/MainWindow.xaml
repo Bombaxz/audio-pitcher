@@ -302,7 +302,7 @@
                         </Grid>
                     </Button>
                     <Button x:Name="RecBtn" Style="{StaticResource IconBtn}"
-                            Click="RecBtn_Click" ToolTip="Grabar audio del sistema">
+                            Click="RecBtn_Click" ToolTip="{DynamicResource S.RecTip}">
                         <TextBlock x:Name="RecBtnIcon" Text="⏺" FontSize="10"
                                    TextOptions.TextFormattingMode="Ideal">
                             <TextBlock.Style>
@@ -318,14 +318,14 @@
                         </TextBlock>
                     </Button>
                     <Button x:Name="SettingsBtn" Style="{StaticResource IconBtn}"
-                            Click="ToggleSettings_Click" ToolTip="Configuración">
+                            Click="ToggleSettings_Click" ToolTip="{DynamicResource S.SettingsTip}">
                         <Path Data="{StaticResource GearGeometry}" Fill="{DynamicResource BrushBlue}"
                               Width="13" Height="13" Stretch="Uniform"/>
                     </Button>
                     <Button x:Name="PinBtn" Content="⊙" Style="{StaticResource IconBtn}" FontSize="12"
-                            Click="PinBtn_Click" ToolTip="Mantener al frente"/>
+                            Click="PinBtn_Click"/>
                     <Button x:Name="MinimizeBtn" Content="—" Style="{StaticResource IconBtn}" FontSize="11"
-                            Click="Minimize_Click" ToolTip="Minimizar"/>
+                            Click="Minimize_Click"/>
                     <Button Content="✕" Style="{StaticResource IconBtn}" FontSize="11" Click="CloseButton_Click"/>
                 </StackPanel>
             </Grid>
@@ -343,7 +343,7 @@
                 <TextBlock Text="APP" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="AppCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,14"
-                          ToolTip="Elegí de qué programa capturar el audio"
+                          ToolTip="{DynamicResource S.AppTip}"
                           DropDownOpened="AppCombo_DropDownOpened"
                           SelectionChanged="AppCombo_SelectionChanged">
                     <ComboBox.ItemTemplate>
@@ -355,7 +355,7 @@
                                            VerticalAlignment="Center" Cursor="Hand"
                                            PreviewMouseLeftButtonDown="FavStar_MouseDown"
                                            PreviewMouseLeftButtonUp="FavStar_MouseUp"
-                                           ToolTip="Fijar arriba de la lista">
+                                           ToolTip="{DynamicResource S.FavTip}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -398,7 +398,7 @@
                         <Grid>
                             <TextBlock x:Name="PitchLabel" Text="+0.0" Foreground="{DynamicResource BrushPitchFill}"
                                        FontSize="20" FontWeight="Bold" Cursor="SizeWE"
-                                       ToolTip="Arrastrá para cambiar · Click para editar · Click derecho para color"
+                                       ToolTip="{DynamicResource S.ValueTip}"
                                        MouseLeftButtonDown="PitchLabel_MouseDown"
                                        MouseMove="PitchLabel_MouseMove"
                                        MouseLeftButtonUp="PitchLabel_MouseUp"
@@ -415,7 +415,7 @@
                         <TextBlock Text=" st" Foreground="{DynamicResource BrushMuted2}"
                                    FontSize="9" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                         <Button Style="{StaticResource IconBtn}" Click="ResetPitch_Click" Margin="4,0,0,0"
-                                ToolTip="Resetear" Foreground="{DynamicResource BrushMuted}">
+                                ToolTip="{DynamicResource S.ResetTip}" Foreground="{DynamicResource BrushMuted}">
                             <TextBlock Text="⟲" FontSize="13"/>
                         </Button>
                     </StackPanel>
@@ -438,7 +438,7 @@
                         <TextBlock x:Name="FormantHeader" Text="FORMANT" Foreground="{DynamicResource BrushMuted2}"
                                    FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
                                    MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:FORMANT" Cursor="Hand"/>
-                        <TextBlock x:Name="FormantUnavailLabel" Text=" (requiere rubberband.dll)"
+                        <TextBlock x:Name="FormantUnavailLabel" Text="{DynamicResource S.NeedsRubberBand}"
                                    Foreground="{DynamicResource BrushMuted}" FontSize="8" VerticalAlignment="Center"
                                    Visibility="Collapsed"/>
                     </StackPanel>
@@ -446,7 +446,7 @@
                         <Grid>
                             <TextBlock x:Name="FormantLabel" Text="+0.0" Foreground="{DynamicResource BrushFormantFill}"
                                        FontSize="20" FontWeight="Bold" Cursor="SizeWE"
-                                       ToolTip="Arrastrá para cambiar · Click para editar · Click derecho para color"
+                                       ToolTip="{DynamicResource S.ValueTip}"
                                        MouseLeftButtonDown="FormantLabel_MouseDown"
                                        MouseMove="FormantLabel_MouseMove"
                                        MouseLeftButtonUp="FormantLabel_MouseUp"
@@ -463,7 +463,7 @@
                         <TextBlock Text=" st" Foreground="{DynamicResource BrushMuted2}"
                                    FontSize="9" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                         <Button Style="{StaticResource IconBtn}" Click="ResetFormant_Click" Margin="4,0,0,0"
-                                ToolTip="Resetear" Foreground="{DynamicResource BrushMuted}">
+                                ToolTip="{DynamicResource S.ResetTip}" Foreground="{DynamicResource BrushMuted}">
                             <TextBlock Text="⟲" FontSize="13"/>
                         </Button>
                     </StackPanel>
@@ -570,7 +570,7 @@
                 </Border>
 
                 <!-- Status -->
-                <TextBlock x:Name="StatusLabel" Text="Sin audio. Revisá el enrutamiento."
+                <TextBlock x:Name="StatusLabel" Text="{DynamicResource S.StatusNoAudio}"
                            Foreground="{DynamicResource BrushMuted2}" FontSize="9"
                            TextWrapping="Wrap" TextAlignment="Center"/>
 
@@ -579,19 +579,19 @@
             <!-- ── SETTINGS PANEL ──────────────────────────────────────── -->
             <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="16,12,16,16"
                         TextOptions.TextFormattingMode="Ideal">
-                <TextBlock Text="CONFIGURACIÓN" Foreground="{DynamicResource BrushMuted2}"
+                <TextBlock Text="{DynamicResource S.SettingsTitle}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,12"/>
 
-                <TextBlock Text="SALIDA DE AUDIO" Foreground="{DynamicResource BrushMuted2}"
+                <TextBlock Text="{DynamicResource S.AudioOutput}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="OutputCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,4"
                           SelectionChanged="OutputCombo_SelectionChanged"/>
-                <TextBlock Text="Cambiar mientras corre reinicia el audio."
+                <TextBlock Text="{DynamicResource S.OutputHint}"
                            Foreground="{DynamicResource BrushHint}" FontSize="9"
                            TextWrapping="Wrap" Margin="0,0,0,14"/>
 
                 <!-- Motor de pitch -->
-                <TextBlock Text="MOTOR PITCH" Foreground="{DynamicResource BrushMuted2}"
+                <TextBlock Text="{DynamicResource S.PitchEngine}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                     <Border x:Name="EngBtn0" Height="22" CornerRadius="5"
@@ -618,7 +618,7 @@
                     </Border>
                 </StackPanel>
 
-                <TextBlock Text="AL MINIMIZAR" Foreground="{DynamicResource BrushMuted2}"
+                <TextBlock Text="{DynamicResource S.OnMinimize}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                     <Border x:Name="MinBtn0" Height="22" CornerRadius="5"
@@ -626,8 +626,8 @@
                             Background="{DynamicResource BrushSurface2}"
                             Cursor="Hand" Padding="8,0" Margin="0,0,6,0"
                             MouseLeftButtonDown="MinimizeMode_Click" Tag="0"
-                            ToolTip="Queda en la barra de tareas, como cualquier programa">
-                        <TextBlock x:Name="MinTxt0" Text="Barra de tareas" Foreground="{DynamicResource BrushText}"
+                            ToolTip="{DynamicResource S.TaskbarTip}">
+                        <TextBlock x:Name="MinTxt0" Text="{DynamicResource S.Taskbar}" Foreground="{DynamicResource BrushText}"
                                    FontSize="8" VerticalAlignment="Center"/>
                     </Border>
                     <Border x:Name="MinBtn1" Height="22" CornerRadius="5"
@@ -635,18 +635,39 @@
                             Background="{DynamicResource BrushSurface2}"
                             Cursor="Hand" Padding="8,0"
                             MouseLeftButtonDown="MinimizeMode_Click" Tag="1"
-                            ToolTip="Se esconde junto al reloj; doble clic en el ícono para volver">
-                        <TextBlock x:Name="MinTxt1" Text="Bandeja" Foreground="{DynamicResource BrushMuted}"
+                            ToolTip="{DynamicResource S.TrayTip}">
+                        <TextBlock x:Name="MinTxt1" Text="{DynamicResource S.Tray}" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="8" VerticalAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Text="{DynamicResource S.Language}" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <Border x:Name="LangBtn0" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                            Background="{DynamicResource BrushSurface2}"
+                            Cursor="Hand" Padding="8,0" Margin="0,0,6,0"
+                            MouseLeftButtonDown="Language_Click" Tag="es">
+                        <TextBlock x:Name="LangTxt0" Text="Español" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="8" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="LangBtn1" Height="22" CornerRadius="5"
+                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
+                            Background="{DynamicResource BrushSurface2}"
+                            Cursor="Hand" Padding="8,0"
+                            MouseLeftButtonDown="Language_Click" Tag="en">
+                        <TextBlock x:Name="LangTxt1" Text="English" Foreground="{DynamicResource BrushMuted}"
                                    FontSize="8" VerticalAlignment="Center"/>
                     </Border>
                 </StackPanel>
 
                 <!-- Apariencia -->
                 <Grid Margin="0,0,0,8">
-                    <TextBlock Text="APARIENCIA" Foreground="{DynamicResource BrushMuted2}"
+                    <TextBlock Text="{DynamicResource S.Appearance}" Foreground="{DynamicResource BrushMuted2}"
                                FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
                     <Button HorizontalAlignment="Right" Style="{StaticResource IconBtn}"
-                            Click="ResetColors_Click" ToolTip="Restablecer colores del tema actual"
+                            Click="ResetColors_Click" ToolTip="{DynamicResource S.ResetColorsTip}"
                             Foreground="{DynamicResource BrushMuted}" Padding="4,2">
                         <TextBlock Text="↺ reset" FontSize="8"/>
                     </Button>
@@ -662,7 +683,7 @@
                         Template="{StaticResource SliderTpl}" Margin="0,0,0,12"
                         ValueChanged="HueSlider_ValueChanged"/>
 
-                <TextBlock Text="TEXTO" Foreground="{DynamicResource BrushMuted2}"
+                <TextBlock Text="{DynamicResource S.Text}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                     <Border x:Name="TxtBtn0" Width="52" Height="22" CornerRadius="5"
@@ -689,7 +710,7 @@
                 </StackPanel>
 
                 <Grid Margin="0,0,0,3">
-                    <TextBlock Text="Contraste" Foreground="{DynamicResource BrushMuted}" FontSize="9"/>
+                    <TextBlock Text="{DynamicResource S.Contrast}" Foreground="{DynamicResource BrushMuted}" FontSize="9"/>
                     <TextBlock x:Name="BrilloLabel" Text="50%" Foreground="{DynamicResource BrushMuted}"
                                FontSize="9" HorizontalAlignment="Right"/>
                 </Grid>
@@ -698,7 +719,7 @@
                         Template="{StaticResource SliderTpl}" Margin="0,0,0,12"
                         ValueChanged="BrilloSlider_ValueChanged"/>
 
-                <TextBlock Text="FONDO" Foreground="{DynamicResource BrushMuted2}"
+                <TextBlock Text="{DynamicResource S.Background}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                     <Border x:Name="BgBtn0" Width="36" Height="22" CornerRadius="5"
@@ -751,14 +772,14 @@
                     <Run x:Name="VersionRun" Text="v1.0.0"/>
                     <Run Text="  ·  "/>
                     <Hyperlink Click="SourceLink_Click" TextDecorations="{x:Null}"
-                               Foreground="{DynamicResource BrushHint}">Código fuente</Hyperlink>
+                               Foreground="{DynamicResource BrushHint}"><Run Text="{DynamicResource S.SourceCode}"/></Hyperlink>
                     <Run Text="  ·  "/>
                     <Hyperlink Click="LicensesLink_Click" TextDecorations="{x:Null}"
-                               Foreground="{DynamicResource BrushHint}">Licencias</Hyperlink>
+                               Foreground="{DynamicResource BrushHint}"><Run Text="{DynamicResource S.Licenses}"/></Hyperlink>
                     <Run Text="  ·  "/>
                     <Hyperlink Click="ReportLink_Click" TextDecorations="{x:Null}"
                                Foreground="{DynamicResource BrushHint}"
-                               ToolTip="Guarda un reporte en el Escritorio para enviarlo">Reportar un problema</Hyperlink>
+                               ToolTip="{DynamicResource S.ReportTip}"><Run Text="{DynamicResource S.Report}"/></Hyperlink>
                 </TextBlock>
 
             </StackPanel>
@@ -779,15 +800,15 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button x:Name="RecPlayBtn" Style="{StaticResource IconBtn}" Click="RecPlay_Click"
-                                ToolTip="Escuchar lo que se va a guardar" Visibility="Collapsed">
+                                ToolTip="{DynamicResource S.PreviewTip}" Visibility="Collapsed">
                             <TextBlock x:Name="RecPlayIcon" Text="▶" FontSize="11"/>
                         </Button>
                         <Button x:Name="RecPauseBtn" Style="{StaticResource IconBtn}" Click="RecPause_Click"
-                                ToolTip="Pausar / Reanudar">
+                                ToolTip="{DynamicResource S.PauseTip}">
                             <TextBlock x:Name="RecPauseIcon" Text="⏸" FontSize="11"/>
                         </Button>
                         <Button x:Name="RecStopBtn" Style="{StaticResource IconBtn}" Click="RecStop_Click"
-                                ToolTip="Detener">
+                                ToolTip="{DynamicResource S.StopTip}">
                             <TextBlock Text="⏹" FontSize="11"/>
                         </Button>
                     </StackPanel>
@@ -817,7 +838,7 @@
                             Padding="10,0" Margin="0,0,6,0" Cursor="Hand"
                             Background="{DynamicResource BrushSurface}"
                             BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
-                            MouseLeftButtonDown="NormBtn_Click" ToolTip="Normalizar al guardar">
+                            MouseLeftButtonDown="NormBtn_Click" ToolTip="{DynamicResource S.NormTip}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="NormDot" Width="6" Height="6" Margin="0,0,5,0"
                                      Fill="{DynamicResource BrushBorder}"/>
@@ -833,7 +854,7 @@
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="Bd" Background="{DynamicResource BrushSurface}"
                                     BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6">
-                                <TextBlock Text="Guardar WAV" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource S.SaveWav}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                            Foreground="{DynamicResource BrushText}" FontSize="10"/>
                             </Border>
                             <ControlTemplate.Triggers>

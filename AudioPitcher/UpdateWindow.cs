@@ -61,7 +61,7 @@ namespace AudioPitcher
             var header = new StackPanel { Orientation = Orientation.Horizontal, Children = { logo, title, ver },
                                           Margin = new Thickness(0, 0, 0, 12) };
 
-            _message = Text("Hay una nueva versión disponible.", 11, "BrushSubtext");
+            _message = Text(Loc.T("NewVersion"), 11, "BrushSubtext");
 
             _fill = new Border { Width = 0, CornerRadius = new CornerRadius(3),
                                  HorizontalAlignment = HorizontalAlignment.Left };
@@ -116,8 +116,8 @@ namespace AudioPitcher
         private void ShowAskButtons()
         {
             _buttons.Children.Clear();
-            _buttons.Children.Add(MakeButton("Ahora no", false, () => DialogResult = false));
-            _buttons.Children.Add(MakeButton("Actualizar", true, async () => await DownloadAsync()));
+            _buttons.Children.Add(MakeButton(Loc.T("NotNow"), false, () => DialogResult = false));
+            _buttons.Children.Add(MakeButton(Loc.T("Update"), true, async () => await DownloadAsync()));
         }
 
         private void SetProgress(int percent)
@@ -136,7 +136,7 @@ namespace AudioPitcher
             _track.Visibility   = Visibility.Visible;
             _status.Text        = "0%";
             _buttons.Children.Clear();
-            _buttons.Children.Add(MakeButton("Cancelar", false, Cancel));
+            _buttons.Children.Add(MakeButton(Loc.T("Cancel"), false, Cancel));
 
             bool ok;
             try
@@ -150,16 +150,16 @@ namespace AudioPitcher
 
             if (!ok)
             {
-                _status.Text = "No se pudo descargar.";
+                _status.Text = Loc.T("DownloadFailed");
                 _status.SetResourceReference(TextBlock.ForegroundProperty, "BrushRed");
                 _buttons.Children.Clear();
-                _buttons.Children.Add(MakeButton("Cerrar", false, () => DialogResult = false));
+                _buttons.Children.Add(MakeButton(Loc.T("Close"), false, () => DialogResult = false));
                 return;
             }
 
             SetProgress(100);
             _buttons.Children.Clear();
-            _status.Text = "Instalando… se vuelve a abrir sola";
+            _status.Text = Loc.T("Installing");
             await Task.Delay(1200);
             DialogResult = true;
         }
