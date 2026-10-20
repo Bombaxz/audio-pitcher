@@ -47,6 +47,18 @@ document.querySelectorAll('[data-donate]').forEach((a) => {
   });
 });
 
+// Copiar el link de la página
+document.querySelectorAll('[data-copy]').forEach((b) => {
+  b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy); } catch (e) { return; }
+    const label = b.lastChild;
+    const original = label.textContent;
+    label.textContent = ' ' + b.dataset.done;
+    if (typeof window.gtag === 'function') window.gtag('event', 'share_copy');
+    setTimeout(() => { label.textContent = original; }, 1600);
+  });
+});
+
 // Conteo de descargas (se activa cuando esté cargado Google Analytics)
 document.querySelectorAll('[data-download]').forEach((a) => {
   a.addEventListener('click', () => {

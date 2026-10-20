@@ -14,6 +14,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
+section[id] { scroll-margin-top: 72px; }   /* que la barra fija no tape el título al saltar */
 
 body {
   margin: 0;
@@ -55,6 +56,8 @@ img { max-width: 100%; height: auto; display: block; }
 .topbar nav a:not(.btn):hover { color: var(--text); }
 .topbar nav i { font-size: 20px; display: block; }
 .brand img { width: 32px; height: 32px; }
+.topbar nav a.nav-support { display: inline-flex; align-items: center; gap: 4px; }
+.topbar nav a.nav-support i { font-size: 16px; color: var(--accent); }
 .topbar nav a.lang {
   padding: 4px 8px; border: 1px solid #313131; border-radius: 8px;
   font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em;
@@ -244,24 +247,45 @@ h1 {
 .legal .btn { margin-top: 32px; }
 
 /* ── Apoyar el proyecto ──────────────────────────── */
-.support { padding-top: 0; }
-.support-card {
-  max-width: 768px; margin: 0 auto; padding: 32px;
-  display: flex; align-items: center; gap: 24px;
-  border: 1px solid #313131; border-radius: 24px; background: var(--surface);
+.support-head { max-width: 680px; margin-bottom: 32px; }
+.support-head h2 { margin-bottom: 12px; }
+.support-head p { margin: 0; color: var(--text-2); font-size: 18px; line-height: 28px; }
+.support-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.support-donate { display: grid; gap: 16px; }
+.donate-option {
+  display: flex; align-items: center; gap: 16px; padding: 24px;
+  border: 1px solid #313131; border-radius: 16px; background: var(--surface); text-decoration: none;
+  transition: border-color 300ms var(--ease), background 300ms var(--ease), transform 300ms var(--ease);
 }
-.support-card > i { font-size: 40px; color: var(--accent); flex-shrink: 0; }
-.support-card h2 { font-size: 20px; line-height: 28px; margin: 0; }
-.support-card p { margin: 4px 0 0; color: var(--text-2); }
-.support-card > .btn, .support-actions { margin-left: auto; flex-shrink: 0; }
-.support-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.support-alt { color: var(--text-3); font-size: 14px; line-height: 20px; text-decoration: none; }
-.support-alt:hover { color: var(--text); }
-@media (max-width: 640px) {
-  .support-card { flex-direction: column; align-items: flex-start; }
-  .support-card > .btn, .support-actions { margin-left: 0; align-items: flex-start; }
+.donate-option:hover { border-color: var(--accent); background: #1f1f1f; transform: translateY(-2px); }
+.donate-option:active { transform: scale(0.99); }
+.donate-option > i:first-child { font-size: 32px; color: var(--accent); }
+.donate-option span { display: grid; flex: 1; }
+.donate-option b { font-size: 18px; line-height: 28px; font-weight: 600; }
+.donate-option small { color: var(--text-2); font-size: 14px; line-height: 20px; }
+.donate-option > i:last-child { font-size: 20px; color: var(--text-3); transition: color 300ms var(--ease); }
+.donate-option:hover > i:last-child { color: var(--text); }
+.support-share {
+  display: flex; align-items: center; gap: 24px; padding: 24px;
+  border: 1px solid #313131; border-radius: 16px; background: var(--surface);
 }
-
+.support-share img { width: 120px; height: 120px; padding: 8px; border-radius: 12px; background: #fff; flex-shrink: 0; }
+.support-share b { display: block; font-size: 18px; line-height: 28px; }
+.support-share small { display: block; color: var(--text-2); font-size: 14px; line-height: 20px; }
+.share-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.share-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border: 1px solid #444; border-radius: 9999px; background: transparent; color: var(--text);
+  font: inherit; font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none; cursor: pointer;
+  transition: background 300ms var(--ease), color 300ms var(--ease);
+}
+.share-btn:hover { background: #fff; color: #000; }
+@media (max-width: 860px) {
+  .support-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .support-share { flex-direction: column; align-items: flex-start; }
+}
 /* Ventana de donación de Ko-fi */
 .donate {
   width: min(420px, calc(100% - 32px)); padding: 48px 16px 16px; border: 1px solid #313131; border-radius: 24px;
