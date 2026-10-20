@@ -271,6 +271,22 @@ h1 {
 .donate[open] { animation: pop 500ms var(--ease); }
 .donate iframe { display: block; width: 100%; height: 640px; border: 0; border-radius: 12px; background: #f9f9f9; }
 
+/* Aviso de cookies (solo Europa) */
+.consent {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 30; max-width: 640px; margin: 0 auto;
+  display: flex; align-items: center; gap: 16px; padding: 16px 24px;
+  border: 1px solid #313131; border-radius: 16px; background: #181818; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+.consent p { margin: 0; color: var(--text-2); font-size: 14px; line-height: 20px; }
+.consent a { color: var(--accent); }
+.consent div { display: flex; gap: 8px; flex-shrink: 0; }
+.consent button {
+  padding: 8px 16px; border: 1px solid #444; border-radius: 9999px; background: transparent;
+  color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.consent button.primary { background: #fff; color: #000; border-color: #fff; }
+@media (max-width: 560px) { .consent { flex-direction: column; align-items: flex-start; } }
+
 /* ── Guías ───────────────────────────────────────── */
 .article { max-width: 720px; }
 .article .crumbs { margin: 0 0 16px; color: var(--text-3); font-size: 14px; line-height: 20px; }

@@ -317,6 +317,7 @@ function page({ lang, url, altUrl, title, desc, body, crumbs }) {
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
   <link rel="stylesheet" href="/styles.css">
+  <script src="/analytics.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">${t.skip}</a>
