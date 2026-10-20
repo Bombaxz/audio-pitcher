@@ -84,8 +84,6 @@ img { max-width: 100%; height: auto; display: block; }
   background: var(--accent); border-color: var(--accent); color: #000;
   box-shadow: 0 8px 32px rgba(255, 198, 26, 0.35);
 }
-.btn[data-download]:hover i { animation: dl-bounce 700ms var(--ease) infinite; }
-@keyframes dl-bounce { 50% { transform: translateY(3px); } }
 
 /* ── Hero ────────────────────────────────────────── */
 .hero {
@@ -123,8 +121,7 @@ h1 {
     #1f1235;
 }
 
-.hero-logo { width: 320px; height: 320px; animation: float 6s var(--ease) infinite alternate; }
-@keyframes float { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-12px) rotate(-2deg); } }
+.hero-logo { width: 320px; height: 320px; }
 
 /* ── Programa sobre el fondo de color ────────────── */
 .showcase { max-width: var(--max); margin: 0 auto; padding: 0 24px 64px; }
@@ -270,7 +267,7 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; filter: none; transition: none; }
   .words span { color: var(--text); }
-  .install-steps li, .install-icon i, .install[open], .hero-logo { animation: none !important; opacity: 1; }
+  .install-steps li, .install-icon i, .install[open] { animation: none !important; opacity: 1; }
   html { scroll-behavior: auto; }
 }
 
