@@ -20,10 +20,21 @@
   s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ID;
   document.head.appendChild(s);
 
+  // Microsoft Clarity (mapas de calor y grabaciones): en Europa solo con consentimiento
+  function loadClarity() {
+    (function (c, l, a, r, i, t, y) {
+      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
+      t = l.createElement(r); t.async = 1; t.src = 'https://www.clarity.ms/tag/' + i;
+      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+    })(window, document, 'clarity', 'script', 'z0sx32zr4o');
+  }
+
   // Aviso solo para quien está en Europa (por zona horaria) y todavía no eligió
   var tz = '';
   try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
-  if (choice || tz.indexOf('Europe/') !== 0) return;
+  var europe = tz.indexOf('Europe/') === 0;
+  if (!europe || choice === 'granted') loadClarity();
+  if (choice || !europe) return;
 
   document.addEventListener('DOMContentLoaded', function () {
     var es = (document.documentElement.lang || '').indexOf('es') === 0;
@@ -40,7 +51,7 @@
       var c = e.target.getAttribute && e.target.getAttribute('data-c');
       if (!c) return;
       try { localStorage.setItem('consent', c); } catch (err) {}
-      if (c === 'granted') gtag('consent', 'update', { analytics_storage: 'granted' });
+      if (c === 'granted') { gtag('consent', 'update', { analytics_storage: 'granted' }); loadClarity(); }
       bar.remove();
     });
     document.body.appendChild(bar);
