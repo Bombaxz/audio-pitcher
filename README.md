@@ -6,7 +6,7 @@ Cambiá el tono (pitch) del audio de cualquier app de Windows en tiempo real: Sp
 
 ## Descarga
 
-**[Descargar para Windows](https://github.com/Bombaxz/audio-pitcher/releases/latest/download/AudioPitcher-Setup.exe)** (Windows 10/11, 64 bits)
+**[audiopitcher.app](https://audiopitcher.app)** · **[Descargar para Windows](https://github.com/Bombaxz/audio-pitcher/releases/latest/download/AudioPitcher-Setup.exe)** (Windows 10/11, 64 bits)
 
 El instalador también instala [VB-Cable](https://vb-audio.com/Cable/), un dispositivo de audio virtual gratuito que Audio Pitcher necesita para funcionar. Puede que haya que reiniciar la PC al terminar.
 

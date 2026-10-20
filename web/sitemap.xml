@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://audio-pitcher.biyeikgameryt.workers.dev/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://audio-pitcher.biyeikgameryt.workers.dev/"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://audio-pitcher.biyeikgameryt.workers.dev/es/"/>
+    <loc>https://audiopitcher.app/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/"/>
     <lastmod>2026-10-19</lastmod>
   </url>
   <url>
-    <loc>https://audio-pitcher.biyeikgameryt.workers.dev/es/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://audio-pitcher.biyeikgameryt.workers.dev/"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://audio-pitcher.biyeikgameryt.workers.dev/es/"/>
+    <loc>https://audiopitcher.app/es/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/"/>
     <lastmod>2026-10-19</lastmod>
   </url>
-  <url><loc>https://audio-pitcher.biyeikgameryt.workers.dev/privacy</loc><lastmod>2026-10-19</lastmod></url>
-  <url><loc>https://audio-pitcher.biyeikgameryt.workers.dev/es/privacidad</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://audiopitcher.app/privacy</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://audiopitcher.app/es/privacidad</loc><lastmod>2026-10-19</lastmod></url>
 </urlset>
