@@ -243,6 +243,36 @@ h1 {
 .legal a:not(.btn) { color: var(--accent); }
 .legal .btn { margin-top: 32px; }
 
+/* ── Guías ───────────────────────────────────────── */
+.article { max-width: 720px; }
+.article .crumbs { margin: 0 0 16px; color: var(--text-3); font-size: 14px; line-height: 20px; }
+.article .crumbs a { color: var(--text-2); text-decoration: none; }
+.article h1 { font-size: 36px; line-height: 40px; margin-bottom: 16px; background: none; color: var(--text); }
+.article .intro { margin: 0 0 40px; color: var(--text-2); font-size: 18px; line-height: 28px; }
+.article h2 { font-size: 24px; line-height: 32px; margin: 48px 0 16px; }
+.article h3 { font-size: 18px; line-height: 28px; margin: 32px 0 8px; }
+.article p, .article li { color: var(--text-2); }
+.article li + li { margin-top: 8px; }
+.article b, .article strong { color: var(--text); font-weight: 600; }
+.article a:not(.btn) { color: var(--accent); }
+.article figure { margin: 24px 0; }
+.article figure img { width: 320px; border-radius: 12px; box-shadow: 0 0 0 1px #2c2a3a; }
+.article figcaption { margin-top: 8px; color: var(--text-3); font-size: 14px; line-height: 20px; }
+.article .note { margin: 24px 0; padding: 16px 24px; border: 1px solid #313131; border-radius: 12px; background: var(--surface); }
+.article .note p { margin: 0; }
+.article table { border-collapse: collapse; margin: 16px 0; }
+.article th, .article td { padding: 8px 16px; border: 1px solid #313131; color: var(--text-2); text-align: left; }
+.article th { color: var(--text); font-weight: 600; }
+.article .cta { margin-top: 48px; }
+.guide-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.guide-list a {
+  display: block; padding: 24px; border: 1px solid #313131; border-radius: 16px; text-decoration: none;
+  transition: background 300ms var(--ease), border-color 300ms var(--ease);
+}
+.guide-list a:hover { background: var(--surface); border-color: #4a4a4a; }
+.guide-list h2 { margin: 0; font-size: 18px; line-height: 28px; color: var(--text); }
+.guide-list p { margin: 8px 0 0; }
+
 .notfound { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 16px; }
 .notfound h1 { font-size: 36px; line-height: 40px; }
 

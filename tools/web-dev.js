@@ -23,7 +23,8 @@ http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p.endsWith('/')) p += 'index.html';
   let file = path.join(root, p);
-  if (!path.extname(file) && fs.existsSync(file + '.html')) file += '.html';
+  if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+  else if (!path.extname(file) && fs.existsSync(file + '.html')) file += '.html';
   let status = 200;
   if (!file.startsWith(root) || !fs.existsSync(file)) { file = path.join(root, '404.html'); status = 404; }
   const ext = path.extname(file);

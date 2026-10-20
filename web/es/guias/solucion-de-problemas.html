@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solución de problemas: no se escucha, se escucha doble y VB-CABLE · Audio Pitcher</title>
+  <meta name="description" content="Resuelve los problemas más comunes de Audio Pitcher: no se escucha nada, la canción suena doble, VB-CABLE no detectado y transmisiones en Discord.">
+  <link rel="canonical" href="https://audiopitcher.app/es/guias/solucion-de-problemas">
+  <link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/solucion-de-problemas">
+  <link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/troubleshooting">
+  <meta name="theme-color" content="#000000">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Audio Pitcher">
+  <meta property="og:title" content="Solución de problemas: no se escucha, se escucha doble y VB-CABLE">
+  <meta property="og:description" content="Resuelve los problemas más comunes de Audio Pitcher: no se escucha nada, la canción suena doble, VB-CABLE no detectado y transmisiones en Discord.">
+  <meta property="og:url" content="https://audiopitcher.app/es/guias/solucion-de-problemas">
+  <meta property="og:image" content="https://audiopitcher.app/img/og.png">
+  <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1" defer></script>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/es/" aria-label="Audio Pitcher, inicio">
+        <img src="/img/logo.svg" alt="" width="32" height="32">
+        <span>Audio Pitcher</span>
+      </a>
+      <nav aria-label="Main">
+        <a class="lang" href="/guides/troubleshooting" hreflang="en" lang="en" data-lang="en" aria-label="View in English">EN</a>
+        <a class="btn btn-sm" href="https://github.com/Bombaxz/audio-pitcher/releases/latest/download/AudioPitcher-Setup.exe" data-download="nav">Descargar</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="section article">
+    <p class="crumbs"><a href="/es/guias/">Guías</a></p>
+    <h1>Solución de problemas: no se escucha, se escucha doble y VB-CABLE</h1>
+    <p class="intro">Resuelve los problemas más comunes de Audio Pitcher: no se escucha nada, la canción suena doble, VB-CABLE no detectado y transmisiones en Discord.</p>
+    
+<h2>No se escucha nada después de instalar</h2>
+<p>Reinicia la PC. VB&#8209;CABLE es un driver y Windows recién lo activa después de reiniciar. Si Audio Pitcher dice <b>"VB-CABLE está instalado, pero Windows todavía no lo activó"</b>, es exactamente eso lo que falta.</p>
+<h2>No se escucha nada después de cerrar Audio Pitcher</h2>
+<p>Puede que Windows haya dejado VB&#8209;CABLE como salida principal. Haz clic en el ícono del parlante de la barra de tareas, abre la lista de dispositivos y elige tus auriculares o parlantes. Desde la versión 1.0.3, Audio Pitcher lo hace solo al cerrarse.</p>
+<p>Si solo una app quedó muda, abre <b>Configuración › Sistema › Sonido › Mezclador de volumen</b>, busca esa app y pon su salida en <b>Predeterminado</b>.</p>
+<h2>La canción se escucha doble</h2>
+<ul>
+  <li>Vuelve a elegir la app en la lista APP para que Audio Pitcher la reconecte.</li>
+  <li>En el mezclador de volumen de Windows, con Audio Pitcher abierto, la app que estás procesando tiene que estar sonando por <b>CABLE</b>. Si no, cierra y vuelve a abrir Audio Pitcher.</li>
+  <li>En el modo <b>Sistema</b>, la salida de Windows tiene que ser <b>CABLE Input</b>.</li>
+</ul>
+<h2>Audio Pitcher dice que VB-CABLE no está instalado</h2>
+<ul>
+  <li>Si recién lo instalaste, reinicia la PC.</li>
+  <li>Si dice que está <b>desactivado</b>, abre el panel de sonido de Windows y, en las pestañas Reproducción y Grabación, haz clic derecho en <b>CABLE</b> y elige <b>Habilitar</b>.</li>
+  <li>Si realmente no está instalado, vuelve a ejecutar el instalador de Audio Pitcher y deja marcado VB&#8209;CABLE.</li>
+</ul>
+<h2>Mi app no aparece en la lista</h2>
+<p>Dale play y vuelve a abrir la lista. Windows recién crea el audio de la app cuando empieza a sonar. Revisa también <b>Más opciones…</b>, al final de la lista.</p>
+<h2>Se escucha eco o acople</h2>
+<p>En la configuración de Audio Pitcher, la <b>salida de audio</b> tiene que ser tus auriculares o parlantes, nunca una opción que diga CABLE.</p>
+<h2>En Discord escuchan la canción doble cuando comparto la pantalla entera</h2>
+<p>Al compartir la pantalla entera, Discord captura directamente el audio original de cada app, aunque suene por VB&#8209;CABLE, y además lo que reproduce Audio Pitcher. Audio Pitcher no puede ocultarle el original a Discord. Si compartes una sola ventana en lugar de la pantalla entera no se duplica, pero en ese caso el audio de Audio Pitcher tampoco entra en la transmisión.</p>
+<h2>¿Sigue sin funcionar?</h2>
+<p>En la configuración de Audio Pitcher, abajo de todo, haz clic en <b>Reportar un problema</b>. Guarda un reporte en tu Escritorio con datos del programa y de tus dispositivos de audio (nada personal). Adjúntalo en un tema nuevo en <a href="https://github.com/Bombaxz/audio-pitcher/issues" rel="noopener">GitHub</a>.</p>
+    <div class="cta">
+      <a class="btn" href="https://github.com/Bombaxz/audio-pitcher/releases/latest/download/AudioPitcher-Setup.exe" data-download="guide"><i class="ph ph-windows-logo"></i> Descargar Audio Pitcher</a>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Audio Pitcher es software libre con licencia <a href="https://github.com/Bombaxz/audio-pitcher/blob/main/LICENSE" rel="noopener">GPL&nbsp;3.0</a>.</p>
+    <nav aria-label="Footer">
+      <a href="/es/guias/">Guías</a>
+      <a href="https://github.com/Bombaxz/audio-pitcher" rel="noopener">GitHub</a>
+      <a href="https://github.com/Bombaxz/audio-pitcher/issues" rel="noopener">Reportar un problema</a>
+      <a href="/es/privacidad">Privacidad</a>
+    </nav>
+  </footer>
+  <script src="/script.js" defer></script>
+</body>
+</html>

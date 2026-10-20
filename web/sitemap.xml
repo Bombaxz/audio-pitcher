@@ -4,14 +4,84 @@
     <loc>https://audiopitcher.app/</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/"/>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://audiopitcher.app/es/</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/"/>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
-  <url><loc>https://audiopitcher.app/privacy</loc><lastmod>2026-10-19</lastmod></url>
-  <url><loc>https://audiopitcher.app/es/privacidad</loc><lastmod>2026-10-19</lastmod></url>
+  <url>
+    <loc>https://audiopitcher.app/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/privacidad"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/es/privacidad</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/privacidad"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/guides/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/guides/getting-started</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/primeros-pasos"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/guides/troubleshooting</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/troubleshooting"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/solucion-de-problemas"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/guides/nightcore-spotify</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/nightcore-spotify"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/nightcore-en-spotify"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/guides/practice-in-another-key</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/practice-in-another-key"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/practicar-en-otra-tonalidad"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/es/guias/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/es/guias/primeros-pasos</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/primeros-pasos"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/es/guias/solucion-de-problemas</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/troubleshooting"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/solucion-de-problemas"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/es/guias/nightcore-en-spotify</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/nightcore-spotify"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/nightcore-en-spotify"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://audiopitcher.app/es/guias/practicar-en-otra-tonalidad</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://audiopitcher.app/guides/practice-in-another-key"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://audiopitcher.app/es/guias/practicar-en-otra-tonalidad"/>
+    <lastmod>2026-10-20</lastmod>
+  </url>
 </urlset>
