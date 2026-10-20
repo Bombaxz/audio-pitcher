@@ -29,10 +29,21 @@ if (install) {
   install.addEventListener('click', (e) => { if (e.target === install) install.close(); });
 }
 
-// Clics en donaciones (se cuentan cuando esté cargado Google Analytics)
+// Donaciones: Ko-fi se abre en una ventana dentro de la página; Cafecito va a su página
+const donate = document.getElementById('donate');
+if (donate) {
+  donate.querySelector('.install-close').addEventListener('click', () => donate.close());
+  donate.addEventListener('click', (e) => { if (e.target === donate) donate.close(); });
+}
 document.querySelectorAll('[data-donate]').forEach((a) => {
-  a.addEventListener('click', () => {
+  a.addEventListener('click', (e) => {
     if (typeof window.gtag === 'function') window.gtag('event', 'donate_click', { platform: a.dataset.donate });
+    if (a.dataset.donate === 'kofi' && donate) {
+      e.preventDefault();
+      const frame = donate.querySelector('iframe');
+      if (!frame.src) frame.src = frame.dataset.src;   // se carga recién al abrir
+      donate.showModal();
+    }
   });
 });
 

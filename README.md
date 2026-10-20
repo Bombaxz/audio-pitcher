@@ -45,7 +45,7 @@ powershell -ExecutionPolicy Bypass -File installer\build.ps1
 
 ## Apoyar el proyecto
 
-Audio Pitcher es gratis. Si te sirve, podés [invitarme un cafecito](https://cafecito.app/labalaseraa) ☕
+Audio Pitcher es gratis. Si te sirve, podés [invitarme un cafecito](https://cafecito.app/labalaseraa) ☕ (desde Argentina) o apoyarlo en [Ko-fi](https://ko-fi.com/labalseraa) (desde cualquier país).
 
 ## Soporte
 
