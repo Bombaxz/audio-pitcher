@@ -84,6 +84,7 @@ namespace AudioPitcher
                 Child = new StackPanel { Children = { header, _message, _track, bottom } }
             };
             frame.SetResourceReference(Border.BorderBrushProperty, "BrushBorder");
+            RenderOptions.SetClearTypeHint(frame, ClearTypeHint.Enabled);
             Content = frame;
         }
 

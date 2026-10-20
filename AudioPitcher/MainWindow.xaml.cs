@@ -256,7 +256,19 @@ public partial class MainWindow : Window
         if (SettingsStore.TakeUpdatedVersion() is string updated)
         {
             Log.Info($"Actualizado a {updated}");
-            SetStatus(() => Loc.T("StatusUpdated", updated));
+            // Aviso temporal: a los segundos vuelve el estado que había
+            var previous = _statusText;
+            Func<string> notice = () => Loc.T("StatusUpdated", updated);
+            SetStatus(notice);
+            var hide = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
+            hide.Tick += (_, _) =>
+            {
+                hide.Stop();
+                if (_statusText != notice) return;   // ya lo reemplazó otro estado
+                if (previous != null) SetStatus(previous);
+                else { _statusText = null; StatusLabel.Text = ""; }
+            };
+            hide.Start();
         }
 
         // Seguir en vivo el dispositivo predeterminado de Windows
@@ -1351,6 +1363,13 @@ public partial class MainWindow : Window
     // El texto se guarda como función para regenerarlo al cambiar de idioma
     private Func<string>? _statusText;
 
+    // Texto nítido (ClearType) dentro de popups con sombra; requiere fondo opaco
+    private static T ClearTypeOn<T>(T el) where T : UIElement
+    {
+        RenderOptions.SetClearTypeHint(el, ClearTypeHint.Enabled);
+        return el;
+    }
+
     private void SetStatus(Func<string> text)
     {
         _statusText = text;
@@ -1935,8 +1954,8 @@ public partial class MainWindow : Window
         {
             Child = new System.Windows.Controls.Border
             {
-                Child = new System.Windows.Controls.StackPanel
-                    { Margin = new Thickness(8), Children = { spectrum, info } },
+                Child = ClearTypeOn(new System.Windows.Controls.StackPanel
+                    { Margin = new Thickness(8), Children = { spectrum, info } }),
                 Background = new SolidColorBrush(surfaceColor),
                 BorderBrush = new SolidColorBrush(borderColor),
                 BorderThickness = new Thickness(1),

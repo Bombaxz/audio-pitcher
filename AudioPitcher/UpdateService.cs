@@ -98,7 +98,10 @@ namespace AudioPitcher
                 }
 
                 // Sin ninguna ventana del instalador; nunca reinicia la PC. Al terminar reabre la app.
-                Process.Start(new ProcessStartInfo(path, "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL")
+                // Registro del instalador junto al de la app, para diagnosticar actualizaciones fallidas
+                string setupLog = Path.Combine(Log.Folder, "update.log");
+                Log.Info($"Instalando actualización {info.Version.ToString(3)}");
+                Process.Start(new ProcessStartInfo(path, $"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL /LOG=\"{setupLog}\"")
                     { UseShellExecute = true });
                 SettingsStore.MarkUpdatedTo(info.Version.ToString(3));
                 return true;

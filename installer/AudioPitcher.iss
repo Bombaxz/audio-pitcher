@@ -40,6 +40,7 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 CloseApplications=yes
 RestartApplications=no
+SetupLogging=yes
 VersionInfoVersion={#AppVersion}
 
 [Languages]
@@ -75,8 +76,8 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchApp}"; Flags: nowait postin
 Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: WizardSilent
 
 ; Limpia restos de versiones con .NET suelto (cientos de DLL) antes de instalar
+; Nunca borrar *.dll: si la copia falla, la versión anterior tiene que seguir abriendo
 [InstallDelete]
-Type: files; Name: "{app}\*.dll"
 Type: files; Name: "{app}\*.json"
 Type: files; Name: "{app}\createdump.exe"
 Type: filesandordirs; Name: "{app}\cs"
@@ -138,6 +139,34 @@ end;
 function WantVBCable: Boolean;
 begin
   Result := (not WizardSilent) and (VBCableCheck <> nil) and VBCableCheck.Checked and (not VBCableInstalled);
+end;
+
+function AppRunning: Boolean;
+var
+  Locator, Wmi, Procs: Variant;
+begin
+  Result := False;
+  try
+    Locator := CreateOleObject('WbemScripting.SWbemLocator');
+    Wmi := Locator.ConnectServer('', 'root\CIMV2', '', '');
+    Procs := Wmi.ExecQuery('SELECT ProcessId FROM Win32_Process WHERE Name="{#AppExe}"');
+    Result := Procs.Count > 0;
+  except
+  end;
+end;
+
+// Al actualizar, la app se está cerrando sola: esperar a que termine antes de tocar archivos
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 1 to 60 do
+  begin
+    if not AppRunning then Break;
+    Log('Esperando a que se cierre {#AppExe}...');
+    Sleep(500);
+  end;
 end;
 
 function WantDesktopIcon: Boolean;

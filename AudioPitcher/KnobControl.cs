@@ -301,6 +301,7 @@ namespace AudioPitcher
             };
 
             var inner = new StackPanel { Margin = new Thickness(8) };
+            RenderOptions.SetClearTypeHint(inner, ClearTypeHint.Enabled);   // texto nítido pese a la sombra
             inner.Children.Add(spectrum);
             inner.Children.Add(hint);
 

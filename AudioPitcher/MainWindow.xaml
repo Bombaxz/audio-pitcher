@@ -89,7 +89,7 @@
                                     <Border.Effect>
                                         <DropShadowEffect BlurRadius="14" Color="Black" Opacity="0.5" ShadowDepth="3"/>
                                     </Border.Effect>
-                                    <ScrollViewer CanContentScroll="True" Margin="0,4"
+                                    <ScrollViewer CanContentScroll="True" Margin="0,4" RenderOptions.ClearTypeHint="Enabled"
                                                   VerticalScrollBarVisibility="Hidden">
                                         <ItemsPresenter/>
                                     </ScrollViewer>
@@ -264,7 +264,9 @@
 
     </Window.Resources>
 
+    <!-- ClearTypeHint: el marco DWM (sombra) deja la ventana sin ClearType; el fondo es opaco, así que se reactiva -->
     <Border x:Name="RootBorder" Background="{DynamicResource BrushBg}" CornerRadius="14"
+            RenderOptions.ClearTypeHint="Enabled"
             BorderBrush="{DynamicResource BrushOverlay}" BorderThickness="1">
 
         <Grid>
@@ -332,7 +334,7 @@
 
             <!-- ── SCROLLABLE / CLIPPED CONTENT ─────────────────────── -->
             <Border x:Name="ShadeContent" Grid.Row="1" ClipToBounds="True">
-            <StackPanel>
+            <StackPanel RenderOptions.ClearTypeHint="Enabled"><!-- ClipToBounds del padre apaga ClearType; el hint va en el hijo -->
 
             <Rectangle Height="1" Fill="{DynamicResource BrushOverlay}"/>
 
@@ -510,7 +512,7 @@
 
                 <!-- ── FX PANEL (animated) ── -->
                 <Border x:Name="FxPanel" MaxHeight="0" ClipToBounds="True">
-                  <StackPanel Margin="0,0,0,10">
+                  <StackPanel Margin="0,0,0,10" RenderOptions.ClearTypeHint="Enabled">
 
                     <!-- REVERB -->
                     <Grid Cursor="Hand" MouseLeftButtonDown="ReverbToggle_Click" Margin="0,0,0,4">
@@ -578,7 +580,7 @@
 
             <!-- ── SETTINGS PANEL ──────────────────────────────────────── -->
             <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="16,12,16,16"
-                        TextOptions.TextFormattingMode="Ideal">
+                        TextOptions.TextFormattingMode="Display">
                 <TextBlock Text="{DynamicResource S.SettingsTitle}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="9" FontWeight="Bold" Margin="0,0,0,12"/>
 
@@ -787,7 +789,7 @@
         <!-- ── RECORD PANEL ───────────────────────────────────────────────── -->
         <Rectangle Height="1" Fill="{DynamicResource BrushOverlay}"/>
         <Border x:Name="RecordPanel" MaxHeight="0" ClipToBounds="True">
-            <StackPanel Margin="16,10,16,12">
+            <StackPanel Margin="16,10,16,12" RenderOptions.ClearTypeHint="Enabled">
 
                 <!-- Status row -->
                 <Grid Margin="0,0,0,8">
