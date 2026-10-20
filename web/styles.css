@@ -54,6 +54,12 @@ img { max-width: 100%; height: auto; display: block; }
 .topbar nav a:not(.btn) { color: var(--text-2); text-decoration: none; font-size: 14px; line-height: 20px; transition: color 300ms var(--ease); }
 .topbar nav a:not(.btn):hover { color: var(--text); }
 .topbar nav i { font-size: 20px; display: block; }
+.brand img { width: 32px; height: 32px; }
+.topbar nav a.lang {
+  padding: 4px 8px; border: 1px solid #313131; border-radius: 8px;
+  font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em;
+}
+.topbar nav a.lang:hover { border-color: #555; }
 
 /* ── Botones ─────────────────────────────────────── */
 .btn {
@@ -68,8 +74,18 @@ img { max-width: 100%; height: auto; display: block; }
 .btn i { font-size: 20px; }
 .btn-sm { padding: 8px 16px; border-radius: 9999px; font-size: 14px; line-height: 20px; background: transparent; color: var(--text); border-color: #444; }
 .btn-sm:hover { background: #fff; color: #000; }
+.btn-sm[data-download] { background: transparent; color: var(--text); border-color: #444; }
 .btn-ghost { background: transparent; color: var(--text); border-color: #313131; }
 .btn-ghost:hover { background: var(--surface); }
+
+/* Botones de descarga: blancos; al pasar el mouse se ponen amarillos y la flecha salta; tras el clic quedan amarillos */
+.btn[data-download] { background: #fff; color: #000; border-color: #fff; border-radius: 9999px; }
+.btn[data-download]:hover, .btn[data-download].done {
+  background: var(--accent); border-color: var(--accent); color: #000;
+  box-shadow: 0 8px 32px rgba(255, 198, 26, 0.35);
+}
+.btn[data-download]:hover i { animation: dl-bounce 700ms var(--ease) infinite; }
+@keyframes dl-bounce { 50% { transform: translateY(3px); } }
 
 /* ── Hero ────────────────────────────────────────── */
 .hero {
@@ -83,23 +99,22 @@ h1 {
   background: linear-gradient(90deg, #ffffff, #9b9b9b);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
+.wordmark {
+  font-size: 72px; line-height: 1; letter-spacing: -0.04em; font-weight: 700;
+  background: none; color: var(--text);
+}
+.hero-sub {
+  max-width: 680px; margin: 16px 0 0; font-size: 36px; line-height: 40px; font-weight: 600; letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #ffffff, #9b9b9b); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
 .lead { max-width: 680px; margin: 24px 0 0; color: var(--text-2); font-size: 18px; line-height: 28px; }
 .cta { margin-top: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-.hero .btn { background: #fff; color: #000; border-radius: 9999px; }
-.hero .btn:hover { background: #e5e5e5; }
 .meta { margin: 0; color: var(--text-3); font-size: 14px; line-height: 20px; }
-.hero-logo { width: 240px; animation: float 6s var(--ease) infinite alternate; }
-@keyframes float { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-12px) rotate(-2deg); } }
-
 /* Bandas de contraste a todo el ancho */
 .band { background: var(--surface); box-shadow: 0 0 0 100vmax var(--surface); clip-path: inset(0 -100vmax); }
 
-/* ── Captura sobre fondo de color ────────────────── */
-.showcase { max-width: var(--max); margin: 0 auto; padding: 0 24px 64px; }
-.showcase h2 { font-size: 24px; line-height: 32px; margin-bottom: 24px; }
-.stage {
-  display: grid; place-items: center; padding: 64px 24px;
-  border-radius: 24px; overflow: hidden;
+/* Fondo de color compartido (hero y recuadros) */
+.stage, .shot {
   background:
     radial-gradient(60% 80% at 15% 20%, #7c3aed 0%, transparent 60%),
     radial-gradient(50% 70% at 85% 25%, #3b82f6 0%, transparent 60%),
@@ -108,9 +123,13 @@ h1 {
     #1f1235;
 }
 
-/* ── Video del programa ─────────────────────────── */
-.demo { display: block; width: 400px; height: auto; border-radius: 19px; box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5); }
+.hero-logo { width: 320px; height: 320px; animation: float 6s var(--ease) infinite alternate; }
+@keyframes float { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-12px) rotate(-2deg); } }
 
+/* ── Programa sobre el fondo de color ────────────── */
+.showcase { max-width: var(--max); margin: 0 auto; padding: 0 24px 64px; }
+.stage { display: grid; place-items: center; padding: 64px 24px; border-radius: 24px; }
+.demo { display: block; width: 400px; height: auto; border-radius: 19px; box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5); }
 /* ── Lema ────────────────────────────────────────── */
 .tagline { max-width: var(--max); margin: 0 auto; padding: 96px 24px; }
 .words { max-width: 680px; margin: 0; font-size: 48px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; }
@@ -121,15 +140,76 @@ h1 {
 .section { max-width: var(--max); margin: 0 auto; padding: 80px 24px; }
 .section h2 { font-size: 30px; line-height: 36px; margin-bottom: 48px; }
 
-/* Recuadros con clips del programa, en columnas tipo mosaico */
-.tiles { columns: 3; column-gap: 16px; }
-.tile {
-  break-inside: avoid; margin: 0 0 16px; padding: 24px;
-  border: 1px solid #272727; border-radius: 16px; background: var(--surface);
+/* Recuadros iguales: la ventana del programa asoma desde abajo */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tile { padding: 8px 8px 24px; border: 1px solid #272727; border-radius: 16px; background: #1f1f1f; }
+.shot { aspect-ratio: 4 / 3; padding: 24px 24px 0; border-radius: 8px; display: flex; overflow: hidden; }
+.shot .frame {
+  flex: 1; position: relative; overflow: hidden;
+  border-radius: 12px 12px 0 0; background: #100f1a; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px #2c2a3a;
 }
-.tile video { display: block; width: 100%; height: auto; margin: 0 auto 24px; }
-.tile h3 { font-size: 18px; line-height: 28px; }
-.tile p { margin: 8px 0 0; color: var(--text-2); }
+.shot video { position: absolute; left: 0; top: 0; width: 100%; height: auto; transform: translateY(calc(-1 * var(--y))); }
+.shot { text-decoration: none; }
+.shot img { position: absolute; left: 0; top: 0; width: 100%; height: auto; }
+
+/* Variaciones suaves del fondo de color en algunos recuadros */
+.tile:nth-child(2) .shot {
+  background:
+    radial-gradient(60% 80% at 85% 15%, #ec4899 0%, transparent 60%),
+    radial-gradient(55% 70% at 10% 30%, #7c3aed 0%, transparent 60%),
+    radial-gradient(60% 70% at 30% 100%, #f59e0b 0%, transparent 60%),
+    #2a1230;
+}
+.tile:nth-child(4) .shot {
+  background:
+    radial-gradient(60% 80% at 20% 15%, #0ea5e9 0%, transparent 60%),
+    radial-gradient(55% 70% at 90% 40%, #8b5cf6 0%, transparent 60%),
+    radial-gradient(60% 70% at 60% 100%, #14b8a6 0%, transparent 60%),
+    #101a33;
+}
+.tile:nth-child(6) .shot {
+  background:
+    radial-gradient(60% 80% at 80% 20%, #22c55e 0%, transparent 60%),
+    radial-gradient(55% 70% at 10% 70%, #3b82f6 0%, transparent 60%),
+    radial-gradient(50% 60% at 50% 110%, #a855f7 0%, transparent 60%),
+    #0f1f22;
+}.tile h3 { margin: 24px 16px 0; font-size: 18px; line-height: 28px; }
+.tile p { margin: 8px 16px 0; color: var(--text-2); }
+
+/* ── Ventana de instalación ──────────────────────── */
+.install {
+  width: min(520px, calc(100% - 32px)); padding: 40px; border: 1px solid #313131; border-radius: 24px;
+  background: #181818; color: var(--text);
+}
+.install::backdrop { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); }
+.install[open] { animation: pop 500ms var(--ease); }
+@keyframes pop { from { opacity: 0; transform: translateY(24px) scale(0.98); } }
+.install h2 { font-size: 24px; line-height: 32px; }
+.install-close {
+  position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; display: grid; place-items: center;
+  border: 0; border-radius: 9999px; background: transparent; color: var(--text-2); cursor: pointer; font-size: 20px;
+}
+.install-close:hover { background: #272727; color: var(--text); }
+.install-steps { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 24px; }
+.install-steps li { display: flex; gap: 16px; opacity: 0; animation: step-in 600ms var(--ease) forwards; }
+.install-steps li:nth-child(2) { animation-delay: 150ms; }
+.install-steps li:nth-child(3) { animation-delay: 300ms; }
+@keyframes step-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.install-icon {
+  flex-shrink: 0; width: 48px; height: 48px; display: grid; place-items: center;
+  border-radius: 12px; background: #272727; color: var(--accent); font-size: 24px;
+}
+.install-steps li:nth-child(1) .install-icon i { animation: bob 1.6s ease-in-out infinite; }
+.install-steps li:nth-child(2) .install-icon i { animation: pulse 1.6s ease-in-out infinite; }
+.install-steps li:nth-child(3) .install-icon i { animation: spin 2.4s var(--ease) infinite; }
+@keyframes bob { 50% { transform: translateY(4px); } }
+@keyframes pulse { 50% { transform: scale(1.15); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.install-steps h3 { font-size: 16px; line-height: 24px; }
+.install-steps p { margin: 4px 0 0; color: var(--text-2); font-size: 14px; line-height: 20px; }
+.install-steps b { color: var(--text); font-weight: 600; }
+.install-foot { margin: 32px 0 0; color: var(--text-3); font-size: 14px; line-height: 20px; }
+.install-foot a { color: var(--accent); }
 
 .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
 .num { color: var(--accent); font-size: 14px; line-height: 20px; font-weight: 600; }
@@ -190,24 +270,28 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; filter: none; transition: none; }
   .words span { color: var(--text); }
-  .hero-logo { animation: none; }
+  .install-steps li, .install-icon i, .install[open], .hero-logo { animation: none !important; opacity: 1; }
   html { scroll-behavior: auto; }
 }
 
 /* ── Pantallas chicas ────────────────────────────── */
 @media (max-width: 960px) {
-  .tiles { columns: 2; }
+  .hero-logo { width: 260px; height: 260px; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; padding: 64px 16px 48px; }
-  .hero-logo { display: none; }
-  h1 { font-size: 36px; line-height: 40px; }
+  .wordmark { font-size: 48px; }
+  .hero-sub { font-size: 30px; line-height: 36px; }
+  .hero-sub br { display: none; }
   h1 br, .lead br { display: none; }
   .words { font-size: 36px; line-height: 40px; }
+  .hero-logo { display: none; }
   .stage { padding: 40px 16px; }
-  .demo { width: 100%; max-width: 340px; }
+  .demo { width: 100%; max-width: 320px; }
+  .install { padding: 32px 24px; }
   .topbar-inner, .tagline, .section, .showcase, .footer { padding-left: 16px; padding-right: 16px; }
   .steps, .uses { grid-template-columns: 1fr; }
-  .tiles { columns: 1; }
-  .topbar nav a:not(.btn) { display: none; }
+  .tiles { grid-template-columns: 1fr; }
+  .topbar nav a:not(.btn):not(.lang) { display: none; }
 }
