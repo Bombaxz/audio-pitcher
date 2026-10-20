@@ -53,8 +53,8 @@ spanish.VBCableStatus=Instalando VB-CABLE de VB-Audio...
 english.VBCableStatus=Installing VB-CABLE by VB-Audio...
 spanish.LaunchApp=Abrir Audio Pitcher
 english.LaunchApp=Launch Audio Pitcher
-spanish.RestartNow=Reiniciar la PC ahora (recomendado)
-english.RestartNow=Restart the PC now (recommended)
+spanish.RestartAsk=¿Quieres reiniciar la PC ahora? Guarda tu trabajo antes de aceptar.
+english.RestartAsk=Do you want to restart your PC now? Save your work before accepting.
 spanish.RestartInfo=Se instaló VB-CABLE. Para que Audio Pitcher funcione hay que reiniciar la PC una vez: si no reinicias, puede que no se escuche nada.
 english.RestartInfo=VB-CABLE was installed. Audio Pitcher needs one restart to work: if you don't restart, you may hear nothing.
 spanish.DeleteSettings=¿Borrar también tu configuración de Audio Pitcher (tema, colores, apps favoritas)?
@@ -101,9 +101,11 @@ var
   VBCableJustInstalled: Boolean;
   VBCableCheck, DesktopCheck: TNewCheckBox;
 
+// En Windows 10/11 el driver corre desde DriverStore: se detecta por su servicio
 function VBCableInstalled: Boolean;
 begin
-  Result := FileExists(ExpandConstant('{sys}\drivers\vbaudio_cable64_win10.sys'));
+  Result := RegKeyExists(HKLM64, 'SYSTEM\CurrentControlSet\Services\VBAudioVACMME')
+    or FileExists(ExpandConstant('{sys}\drivers\vbaudio_cable64_win10.sys'));
 end;
 
 // Opciones en la misma página que la carpeta de instalación
@@ -132,9 +134,10 @@ begin
   DesktopCheck := AddCheck(ExpandConstant('{cm:CreateDesktopIcon}'), False, Top);
 end;
 
+// Las actualizaciones (silenciosas) nunca tocan VB-CABLE
 function WantVBCable: Boolean;
 begin
-  Result := (VBCableCheck <> nil) and VBCableCheck.Checked;
+  Result := (not WizardSilent) and (VBCableCheck <> nil) and VBCableCheck.Checked and (not VBCableInstalled);
 end;
 
 function WantDesktopIcon: Boolean;
@@ -147,34 +150,15 @@ begin
   VBCableJustInstalled := True;
 end;
 
-// Reinicio: casilla propia en la página final, marcada por defecto, solo si se instaló VB-CABLE
-var
-  RestartCheck: TNewCheckBox;
-
-procedure CurPageChanged(CurPageID: Integer);
-begin
-  if (CurPageID = wpFinished) and VBCableJustInstalled and (RestartCheck = nil) then
-  begin
-    WizardForm.FinishedLabel.Caption := CustomMessage('RestartInfo');
-    WizardForm.RunList.Visible := False;
-    RestartCheck := TNewCheckBox.Create(WizardForm);
-    RestartCheck.Parent  := WizardForm.FinishedPage;
-    RestartCheck.Left    := WizardForm.FinishedLabel.Left;
-    RestartCheck.Top     := WizardForm.FinishedLabel.Top + WizardForm.FinishedLabel.Height + ScaleY(24);
-    RestartCheck.Width   := WizardForm.FinishedPage.ClientWidth - RestartCheck.Left;
-    RestartCheck.Height  := ScaleY(20);
-    RestartCheck.Caption := CustomMessage('RestartNow');
-    RestartCheck.Checked := True;
-  end;
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
+// Reinicio: solo si se instaló VB-CABLE, solo con pantallas, y siempre preguntando
+procedure CurStepChanged(CurStep: TSetupStep);
 var
   Code: Integer;
 begin
-  Result := True;
-  if (CurPageID = wpFinished) and (RestartCheck <> nil) and RestartCheck.Checked then
-    Exec(ExpandConstant('{sys}\shutdown.exe'), '/r /t 5', '', SW_HIDE, ewNoWait, Code);
+  if (CurStep = ssDone) and VBCableJustInstalled and (not WizardSilent) then
+    if MsgBox(CustomMessage('RestartInfo') + #13#10#13#10 + CustomMessage('RestartAsk'),
+              mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+      Exec(ExpandConstant('{sys}\shutdown.exe'), '/r /t 5', '', SW_HIDE, ewNoWait, Code);
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

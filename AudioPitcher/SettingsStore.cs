@@ -40,6 +40,26 @@ namespace AudioPitcher
             return new();
         }
 
+        // Versión recién instalada por el actualizador: al reabrir se avisa una vez
+        private static readonly string _updatedFlag = Path.Combine(Path.GetDirectoryName(_path)!, "updated.txt");
+
+        public static void MarkUpdatedTo(string version)
+        {
+            try { Directory.CreateDirectory(Path.GetDirectoryName(_path)!); File.WriteAllText(_updatedFlag, version); } catch { }
+        }
+
+        public static string? TakeUpdatedVersion()
+        {
+            try
+            {
+                if (!File.Exists(_updatedFlag)) return null;
+                string v = File.ReadAllText(_updatedFlag).Trim();
+                File.Delete(_updatedFlag);
+                return v;
+            }
+            catch { return null; }
+        }
+
         public static void Save(AppSettings s)
         {
             try

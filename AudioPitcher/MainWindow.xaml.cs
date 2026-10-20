@@ -254,6 +254,11 @@ public partial class MainWindow : Window
         Log.Startup();
         FixDefaultOutputIfCable(onExit: false);
         StartEngine();
+        if (SettingsStore.TakeUpdatedVersion() is string updated)
+        {
+            Log.Info($"Actualizado a {updated}");
+            StatusLabel.Text = $"Listo: actualizado a la versión {updated}.";
+        }
 
         // Seguir en vivo el dispositivo predeterminado de Windows
         _defaultDeviceDebounce = new System.Windows.Threading.DispatcherTimer

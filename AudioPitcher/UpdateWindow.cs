@@ -159,7 +159,8 @@ namespace AudioPitcher
 
             SetProgress(100);
             _buttons.Children.Clear();
-            await Task.Delay(500);
+            _status.Text = "Instalando… se vuelve a abrir sola";
+            await Task.Delay(1200);
             DialogResult = true;
         }
 

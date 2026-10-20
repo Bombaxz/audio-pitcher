@@ -97,8 +97,10 @@ namespace AudioPitcher
                     }
                 }
 
-                Process.Start(new ProcessStartInfo(path, "/SILENT /SUPPRESSMSGBOXES /NORESTART")
+                // Sin ninguna ventana del instalador; nunca reinicia la PC. Al terminar reabre la app.
+                Process.Start(new ProcessStartInfo(path, "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL")
                     { UseShellExecute = true });
+                SettingsStore.MarkUpdatedTo(info.Version.ToString(3));
                 return true;
             }
             catch (OperationCanceledException) { throw; }
