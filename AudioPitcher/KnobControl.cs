@@ -271,67 +271,13 @@ namespace AudioPitcher
             Value = Math.Clamp(raw, Minimum, Maximum);
         }
 
+        // Click derecho: la ventana abre el mismo selector de color que los sliders y lo guarda
+        public event Action<KnobControl>? ColorPickRequested;
+
         protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
         {
-            ShowColorPicker();
+            ColorPickRequested?.Invoke(this);
             e.Handled = true;
-        }
-
-        private void ShowColorPicker()
-        {
-            var grad = new LinearGradientBrush { StartPoint = new WpfPoint(0, 0), EndPoint = new WpfPoint(1, 0) };
-            for (int i = 0; i <= 12; i++)
-            {
-                ThemeService.HslToColor(i / 12f, 1f, 0.65f, out var c);
-                grad.GradientStops.Add(new GradientStop(ThemeService.ShiftHue(c, ThemeService.HueShift), i / 12.0));
-            }
-
-            var spectrum = new Border
-            {
-                Width = 160, Height = 22, CornerRadius = new CornerRadius(5),
-                Background = grad, Cursor = WpfCursors.Hand, ClipToBounds = true
-            };
-
-            var hint = new TextBlock
-            {
-                Text = Loc.T("KnobTip"),
-                Foreground = new SolidColorBrush(GetTheme("BrushMuted", WpfColor.FromRgb(0x6C, 0x70, 0x86))),
-                FontSize = 8, TextAlignment = TextAlignment.Center,
-                Margin = new Thickness(0, 4, 0, 0)
-            };
-
-            var inner = new StackPanel { Margin = new Thickness(8) };
-            RenderOptions.SetClearTypeHint(inner, ClearTypeHint.Enabled);   // texto nítido pese a la sombra
-            inner.Children.Add(spectrum);
-            inner.Children.Add(hint);
-
-            var popup = new Popup
-            {
-                Child = new Border
-                {
-                    Child = inner,
-                    Background = new SolidColorBrush(GetTheme("BrushSurface", WpfColor.FromRgb(0x2A, 0x2A, 0x3D))),
-                    BorderBrush = new SolidColorBrush(GetTheme("BrushBorder", WpfColor.FromRgb(0x3D, 0x3D, 0x56))),
-                    BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(8),
-                    Effect = new DropShadowEffect { BlurRadius = 14, Color = WpfColor.FromRgb(0,0,0), Opacity = 0.5, ShadowDepth = 3 }
-                },
-                PlacementTarget = this,
-                Placement = PlacementMode.Mouse,
-                StaysOpen = false,
-                AllowsTransparency = true
-            };
-
-            spectrum.MouseLeftButtonDown += (s, e) =>
-            {
-                double ratio = e.GetPosition(spectrum).X / spectrum.ActualWidth;
-                ThemeService.HslToColor((float)Math.Clamp(ratio, 0, 1), 1f, 0.65f, out var c);
-                KnobColor = c;
-                popup.IsOpen = false;
-                e.Handled = true;
-            };
-
-            popup.IsOpen = true;
         }
 
         protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)

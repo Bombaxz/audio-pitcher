@@ -51,7 +51,7 @@ namespace AudioPitcher
         private static float _hueShift      = 0f;
         private static int   _bgPreset      = 0;
         private static int   _textColorMode  = 0;
-        private static int   _textBrightness = 50; // 0–100
+        private static int   _textBrightness = 100; // 0–100
 
         // Custom colors per preset — store BASE color (pre-hue); hue applied on read
         private static readonly System.Collections.Generic.Dictionary<int,
@@ -81,6 +81,9 @@ namespace AudioPitcher
                 _customColors[_bgPreset].Clear();
             UpdateResources();
         }
+
+        public static WpfColor? GetCustomColorBase(string key) =>
+            _customColors.TryGetValue(_bgPreset, out var d) && d.TryGetValue(key, out var c) ? c : null;
 
         public static WpfColor? GetCustomColor(string key)
         {

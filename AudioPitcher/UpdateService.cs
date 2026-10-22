@@ -45,15 +45,19 @@ namespace AudioPitcher
                 if (!Version.TryParse(tag, out var latest)) return null;
                 if (Normalize(latest) <= Normalize(CurrentVersion)) return null;
 
+                // AudioPitcher-Update.exe = copia del instalador solo para actualizaciones, así las
+                // descargas de AudioPitcher-Setup.exe cuentan únicamente a la gente que baja desde la web
                 string? url = null;
                 foreach (var asset in root.GetProperty("assets").EnumerateArray())
                 {
                     var name = asset.GetProperty("name").GetString() ?? "";
-                    if (name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase))
+                    if (name.Equals("AudioPitcher-Update.exe", StringComparison.OrdinalIgnoreCase))
                     {
                         url = asset.GetProperty("browser_download_url").GetString();
                         break;
                     }
+                    if (url == null && name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase))
+                        url = asset.GetProperty("browser_download_url").GetString();
                 }
                 if (url == null) return null;
 

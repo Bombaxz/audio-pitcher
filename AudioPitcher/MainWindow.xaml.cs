@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using WpfColor          = System.Windows.Media.Color;
 using WpfPoint          = System.Windows.Point;
 using WpfMouseEventArgs = System.Windows.Input.MouseEventArgs;
@@ -63,9 +64,18 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        RestoreWindowPlacement();
         Loaded += OnLoaded;
+        Closing += (_, _) => CaptureWindowPlacement();
+        PreviewKeyDown += HotkeyCapture_PreviewKeyDown;
+        // Click en cualquier otro lado mientras se espera una combinación → cancelar
+        PreviewMouseDown += (_, _) =>
+        {
+            if (_capturingHotkey != null && !_hotkeyBoxes[_capturingHotkey].box.IsMouseOver) CancelHotkeyCapture();
+        };
         Closed += (_, _) =>
         {
+            UnregisterAllHotkeys();
             RestoreAllRoutings("cierre");
             FixDefaultOutputIfCable(onExit: true);
             SaveSettings();
@@ -80,6 +90,54 @@ public partial class MainWindow : Window
             RestoreAllRoutings("Windows se apaga");
             FixDefaultOutputIfCable(onExit: true);
         };
+    }
+
+    // ── Posición y tamaño de la ventana ─────────────────────────────────────────
+
+    private double? _winLeft, _winTop, _winWidth, _winHeight;
+
+    private void RestoreWindowPlacement()
+    {
+        var s = SettingsStore.Load();
+        if (s.WindowWidth is not double w || s.WindowHeight is not double h || w <= 0 || h <= 0) return;
+        _winWidth  = Width = Math.Max(w, MinWidth);
+        _winHeight = h;   // se aplica al medir la altura natural (OnLoaded)
+
+        // Solo si sigue dentro de una pantalla (p. ej. monitor desconectado → centrada)
+        if (s.WindowLeft is double l && s.WindowTop is double t && IsOnScreen(l, t, Width))
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            _winLeft = Left = l;
+            _winTop  = Top  = t;
+        }
+    }
+
+    // La franja superior de la ventana (por donde se arrastra) tiene que verse en algún monitor
+    private static bool IsOnScreen(double left, double top, double width)
+    {
+        var primary = System.Windows.Forms.Screen.PrimaryScreen;
+        double scale = primary != null && SystemParameters.PrimaryScreenWidth > 0
+            ? primary.Bounds.Width / SystemParameters.PrimaryScreenWidth : 1.0;
+        var strip = new System.Drawing.Rectangle((int)(left * scale), (int)(top * scale),
+                                                 (int)(width * scale), (int)(40 * scale));
+        foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+        {
+            var hit = System.Drawing.Rectangle.Intersect(screen.WorkingArea, strip);
+            if (hit.Width >= 60 * scale && hit.Height >= 20 * scale) return true;
+        }
+        return false;
+    }
+
+    private void CaptureWindowPlacement()
+    {
+        if (!IsLoaded || ActualWidth <= 0) return;
+        Rect b = WindowState == WindowState.Normal ? new Rect(Left, Top, ActualWidth, ActualHeight) : RestoreBounds;
+        if (b.IsEmpty || b.Width <= 0) return;
+        // Con configuración o efectos abiertos, se guarda la altura de antes de abrirlos
+        double h = _settingsOpen && _heightBeforeSettings > 0 ? _heightBeforeSettings
+                 : _fxOpen && _heightBeforeFx > 0 ? _heightBeforeFx
+                 : b.Height;
+        (_winLeft, _winTop, _winWidth, _winHeight) = (b.Left, b.Top, b.Width, h);
     }
 
     // ── Actualizaciones ───────────────────────────────────────────────────────
@@ -238,6 +296,7 @@ public partial class MainWindow : Window
         FxPill.Background = new SolidColorBrush(WpfColor.FromRgb(0x89, 0xB4, 0xFA));
         FxPillDot.Fill    = new SolidColorBrush(Colors.White);
 
+        InitKnobColors();
         ThemeService.ThemeChanged += (_, _) => { ApplyCustomLabelColors(); ApplyThemeChrome(); SaveSettings(); };
 
         // Hide cursor while dragging any slider thumb
@@ -300,6 +359,8 @@ public partial class MainWindow : Window
             _naturalHeight = ActualHeight;
             MaxHeight      = _naturalHeight;
             SizeToContent  = SizeToContent.Manual;
+            if (_winHeight is double savedH)   // altura con la que se cerró (p. ej. achicada)
+                Height = Math.Clamp(savedH, MinHeight, _naturalHeight);
             // Measure the title label natural width (works even if later collapsed)
             TitleLabel.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
             _titleLabelNaturalWidth = TitleLabel.DesiredSize.Width;
@@ -512,6 +573,7 @@ public partial class MainWindow : Window
     protected override void OnDeactivated(EventArgs e)
     {
         base.OnDeactivated(e);
+        CancelHotkeyCapture();
         if (!_isPinned && WindowState == WindowState.Normal)
             WindowState = WindowState.Minimized;
     }
@@ -595,6 +657,7 @@ public partial class MainWindow : Window
         if (AppCombo.SelectedItem is not AudioSessionInfo sel || sel.ProcessId < 0) return;
         _selectedAppName   = sel.Name;
         _targetProcessName = sel.ProcessId == 0 ? "" : sel.ProcessName;
+        SwitchPitchToApp(_targetProcessName);
 
         if (sel.ProcessId == _routedPid) return;   // sin cambios (incluye Sistema↔Sistema)
 
@@ -817,19 +880,25 @@ public partial class MainWindow : Window
     private void PitchSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (PitchLabel == null) return;
+        if (SnapToSemitone(PitchSlider)) return;
         if (SnapNearZero(PitchSlider, 0.25)) return;
         float val = GetSliderVal(PitchSlider);
         PitchLabel.Text = val >= 0 ? $"+{val:F1}" : $"{val:F1}";
         _engine.PitchSemitones = val;
+        ForgetResetIfManual(ref _pitchBeforeReset);
+        StoreAppPitch();
     }
 
     private void FormantSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (FormantLabel == null) return;
+        if (SnapToSemitone(FormantSlider)) return;
         if (SnapNearZero(FormantSlider, 0.25)) return;
         float val = GetSliderVal(FormantSlider);
         FormantLabel.Text = val >= 0 ? $"+{val:F1}" : $"{val:F1}";
         _engine.FormantPitchSemitones = val;
+        ForgetResetIfManual(ref _formantBeforeReset);
+        StoreAppPitch();
     }
 
     private bool SnapNearZero(Slider s, double snapRange)
@@ -849,8 +918,116 @@ public partial class MainWindow : Window
         return Math.Sign(raw) * snapRange * t * t;
     }
 
-    private void ResetPitch_Click(object sender, RoutedEventArgs e)   => PitchSlider.Value   = 0;
-    private void ResetFormant_Click(object sender, RoutedEventArgs e) => FormantSlider.Value = 0;
+    // ── Tono por app: cada app vuelve a su pitch/formant ──────────────────────
+
+    private Dictionary<string, double[]> _appPitch = new();
+    private string? _pitchAppKey;   // app a la que corresponden los valores actuales de los sliders
+    private bool _switchingApp;
+
+    private static string PitchKey(string processName) =>
+        string.IsNullOrEmpty(processName) ? "*" : processName.ToLowerInvariant();
+
+    private void SwitchPitchToApp(string processName)
+    {
+        string key = PitchKey(processName);
+        if (key == _pitchAppKey) return;
+        _pitchAppKey = key;
+        double[] v = _appPitch.TryGetValue(key, out var saved) && saved.Length == 2 ? saved : new[] { 0.0, 0.0 };
+        _switchingApp = _snapGuard = true;
+        PitchSlider.Value   = v[0];
+        FormantSlider.Value = v[1];
+        _switchingApp = _snapGuard = false;
+        _pitchBeforeReset = _formantBeforeReset = null;
+        UpdateResetButtons();
+    }
+
+    private void StoreAppPitch()
+    {
+        if (_pitchAppKey == null || _switchingApp) return;
+        double p = Math.Round(PitchSlider.Value, 1), f = Math.Round(FormantSlider.Value, 1);
+        if (p == 0 && f == 0) _appPitch.Remove(_pitchAppKey);
+        else _appPitch[_pitchAppKey] = new[] { p, f };
+    }
+
+    // ── Ruedita del mouse y Shift (semitonos exactos) ─────────────────────────
+
+    private void PitchWheel(object sender, MouseWheelEventArgs e)   => WheelStep(PitchSlider, e);
+    private void FormantWheel(object sender, MouseWheelEventArgs e) => WheelStep(FormantSlider, e);
+
+    // Paso 0.1; con Shift, al semitono entero siguiente
+    private void WheelStep(Slider slider, MouseWheelEventArgs e)
+    {
+        if (!slider.IsEnabled) return;
+        int dir = Math.Sign(e.Delta);
+        double v = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)
+            ? (dir > 0 ? Math.Floor(slider.Value + 1e-6) + 1 : Math.Ceiling(slider.Value - 1e-6) - 1)
+            : Math.Round(slider.Value * 10) / 10.0 + 0.1 * dir;
+        _snapGuard = true;   // sin el imán del 0: con la ruedita se puede ir a ±0.1
+        slider.Value = Math.Clamp(Math.Round(v, 1), slider.Minimum, slider.Maximum);
+        _snapGuard = false;
+        e.Handled = true;
+    }
+
+    // Arrastrando con Shift: redondea a semitonos enteros
+    private bool SnapToSemitone(Slider s)
+    {
+        if (_snapGuard || _resetting || _switchingApp) return false;
+        if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) || Mouse.LeftButton != MouseButtonState.Pressed) return false;
+        double r = Math.Round(s.Value);
+        if (Math.Abs(r - s.Value) < 1e-6) return false;
+        _snapGuard = true;
+        s.Value = r;
+        _snapGuard = false;
+        return true;
+    }
+
+    // Reset de ida y vuelta: primer click → 0 (recuerda el valor); segundo click → vuelve al valor
+    private double? _pitchBeforeReset, _formantBeforeReset;
+    private bool _resetting;
+
+    private void ResetPitch_Click(object sender, RoutedEventArgs e)   => ToggleReset(PitchSlider, ref _pitchBeforeReset);
+    private void ResetFormant_Click(object sender, RoutedEventArgs e) => ToggleReset(FormantSlider, ref _formantBeforeReset);
+
+    private void ToggleReset(Slider slider, ref double? before)
+    {
+        _resetting = true;
+        if (Math.Abs(slider.Value) > 0.001) { before = slider.Value; slider.Value = 0; }
+        else if (before is double v)        { before = null;         slider.Value = v; }
+        _resetting = false;
+        UpdateResetButtons();
+    }
+
+    // Moverlo a mano olvida el valor guardado
+    private void ForgetResetIfManual(ref double? before)
+    {
+        if (_resetting || before == null) return;
+        before = null;
+        UpdateResetButtons();
+    }
+
+    private void UpdateResetButtons()
+    {
+        UpdateResetButton(PitchResetBtn, _pitchBeforeReset, "BrushPitchFill");
+        UpdateResetButton(FormantResetBtn, _formantBeforeReset, "BrushFormantFill");
+    }
+
+    // Con valor guardado: flecha espejada y en color, tooltip "Volver a +1.7"
+    private static void UpdateResetButton(System.Windows.Controls.Button btn, double? before, string accentKey)
+    {
+        if (btn?.Content is not TextBlock icon) return;
+        if (before is double v)
+        {
+            icon.RenderTransform = new ScaleTransform(-1, 1);
+            icon.SetResourceReference(TextBlock.ForegroundProperty, accentKey);
+            btn.ToolTip = Loc.T("RestoreTip", v >= 0 ? $"+{v:F1}" : $"{v:F1}");
+        }
+        else
+        {
+            icon.RenderTransform = Transform.Identity;
+            icon.ClearValue(TextBlock.ForegroundProperty);
+            btn.SetResourceReference(FrameworkElement.ToolTipProperty, "S.ResetTip");
+        }
+    }
 
     // ── Slider jump-to-click ──────────────────────────────────────────────────
 
@@ -1071,9 +1248,7 @@ public partial class MainWindow : Window
         _fxEnabled = !_fxEnabled;
         _engine.FxEnabled = _fxEnabled;
 
-        var blue = (System.Windows.Application.Current.Resources["BrushBlue"] as SolidColorBrush)?.Color
-                   ?? WpfColor.FromRgb(0x89, 0xB4, 0xFA);
-        var targetPill = _fxEnabled ? blue : WpfColor.FromRgb(0x2E, 0x2E, 0x45);
+        var targetPill = _fxEnabled ? FxAccent() : WpfColor.FromRgb(0x2E, 0x2E, 0x45);
         var targetDot  = _fxEnabled ? Colors.White : WpfColor.FromRgb(0x4A, 0x4A, 0x6A);
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
@@ -1247,7 +1422,18 @@ public partial class MainWindow : Window
                 if (idx >= 0) OutputCombo.SelectedIndex = idx + 1;
             }
 
+            // Imagen de fondo
+            BgImageAmountSlider.Value = s.BgImageAmount;
+            BgImageBlurSlider.Value   = s.BgImageBlur;
+            _bgImageFile = s.BgImageFile ?? "";
+            MigrateOldBackground(_bgImageFile);
+            ApplyBgImage();
+
             // Restore capture source (app)
+            _hotkeys = s.Hotkeys ?? new();
+            RegisterAllHotkeys();
+
+            _appPitch          = s.AppPitch ?? new();
             _targetProcessName = s.TargetProcessName;
             _recentApps        = s.RecentApps ?? new();
             _favoriteApps      = s.FavoriteApps ?? new();
@@ -1259,6 +1445,7 @@ public partial class MainWindow : Window
     private void SaveSettings()
     {
         if (_loading || _demoMode) return;
+        CaptureWindowPlacement();
         var devices = AudioEngine.GetOutputDeviceNames();
         string devName = OutputCombo.SelectedIndex == 0
             ? DefaultDeviceSentinel
@@ -1280,6 +1467,15 @@ public partial class MainWindow : Window
             TargetProcessName = _targetProcessName,
             RecentApps       = _recentApps,
             FavoriteApps     = _favoriteApps,
+            BgImageFile      = _bgImageFile,
+            BgImageAmount    = (int)BgImageAmountSlider.Value,
+            BgImageBlur      = (int)BgImageBlurSlider.Value,
+            AppPitch         = _appPitch,
+            Hotkeys          = _hotkeys,
+            WindowLeft       = _winLeft,
+            WindowTop        = _winTop,
+            WindowWidth      = _winWidth,
+            WindowHeight     = _winHeight,
             CustomColors     = ThemeService.GetCustomColorsForSave(),
         });
     }
@@ -1314,7 +1510,9 @@ public partial class MainWindow : Window
 
     private void ToggleSettings_Click(object sender, RoutedEventArgs e)
     {
+        CancelHotkeyCapture();
         _settingsOpen = !_settingsOpen;
+        if (_settingsOpen) ShowSettingsPage(0);   // siempre abre en el inicio
         if (_settingsOpen)
             _heightBeforeSettings = ActualHeight;   // save before expanding
 
@@ -1378,10 +1576,209 @@ public partial class MainWindow : Window
 
     // ── Idioma ────────────────────────────────────────────────────────────────
 
-    private void Language_Click(object sender, MouseButtonEventArgs e)
+    // ── Atajos globales ───────────────────────────────────────────────────────
+    // RegisterHotKey: la combinación es exclusiva de Audio Pitcher mientras está abierto.
+    // Si otro programa ya la tiene como atajo global, Windows la rechaza y se avisa.
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+    [DllImport("user32.dll")]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    private const int  WM_HOTKEY  = 0x0312;
+    private const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_SHIFT = 0x4, MOD_WIN = 0x8, MOD_NOREPEAT = 0x4000;
+
+    private static readonly string[] HotkeyIds   = { "toggle", "up", "down", "show" };
+    private static readonly string[] HotkeyNames = { "HkToggle", "HkUp", "HkDown", "HkShow" };
+
+    private Dictionary<string, int[]> _hotkeys = new();      // id → [modificadores, tecla virtual]
+    private readonly HashSet<string> _hotkeysInUse = new();  // rechazados por Windows
+    private string? _capturingHotkey;
+    private readonly Dictionary<string, (Border box, TextBlock text)> _hotkeyBoxes = new();
+
+    private IntPtr Hwnd => new System.Windows.Interop.WindowInteropHelper(this).Handle;
+
+    private void RegisterAllHotkeys()
     {
-        Loc.Set(((FrameworkElement)sender).Tag?.ToString() ?? "es");
+        _hotkeysInUse.Clear();
+        for (int i = 0; i < HotkeyIds.Length; i++)
+        {
+            UnregisterHotKey(Hwnd, i + 1);
+            if (_hotkeys.TryGetValue(HotkeyIds[i], out var k) && k.Length == 2 &&
+                !RegisterHotKey(Hwnd, i + 1, (uint)k[0] | MOD_NOREPEAT, (uint)k[1]))
+                _hotkeysInUse.Add(HotkeyIds[i]);
+        }
+        UpdateHotkeyRows();
+    }
+
+    private void UnregisterAllHotkeys()
+    {
+        for (int i = 0; i < HotkeyIds.Length; i++) UnregisterHotKey(Hwnd, i + 1);
+    }
+
+    private void OnHotkey(int id)
+    {
+        if (_capturingHotkey != null) return;
+        switch (id)
+        {
+            case 1: ToggleOriginal(); break;
+            case 2: StepPitch(+1); break;
+            case 3: StepPitch(-1); break;
+            case 4: ToggleWindowVisible(); break;
+        }
+    }
+
+    // Original ↔ cambiado: pitch y formant juntos (mismo comportamiento que los botones de reset)
+    private void ToggleOriginal()
+    {
+        bool shifted = Math.Abs(PitchSlider.Value) > 0.001 || Math.Abs(FormantSlider.Value) > 0.001;
+        if (shifted)
+        {
+            if (Math.Abs(PitchSlider.Value)   > 0.001) ToggleReset(PitchSlider,   ref _pitchBeforeReset);
+            if (Math.Abs(FormantSlider.Value) > 0.001) ToggleReset(FormantSlider, ref _formantBeforeReset);
+        }
+        else
+        {
+            if (_pitchBeforeReset   != null) ToggleReset(PitchSlider,   ref _pitchBeforeReset);
+            if (_formantBeforeReset != null) ToggleReset(FormantSlider, ref _formantBeforeReset);
+        }
+    }
+
+    private void StepPitch(int dir)
+    {
+        _snapGuard = true;   // sin el imán del 0 (p. ej. -0.8 + 1 = +0.2)
+        PitchSlider.Value = Math.Clamp(Math.Round(PitchSlider.Value + dir, 1), PitchSlider.Minimum, PitchSlider.Maximum);
+        _snapGuard = false;
+    }
+
+    private void ToggleWindowVisible()
+    {
+        if (!IsVisible) { RestoreFromTray(); return; }
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+            Activate();
+            return;
+        }
+        if (_minimizeToTray) HideToTray();
+        else WindowState = WindowState.Minimized;
+    }
+
+    // Filas de la sección ATAJOS (se arman una vez; los textos se actualizan con el idioma)
+    private void UpdateHotkeyRows()
+    {
+        if (_hotkeyBoxes.Count == 0)
+        {
+            for (int i = 0; i < HotkeyIds.Length; i++)
+            {
+                string id = HotkeyIds[i];
+                var label = new TextBlock { FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
+                label.SetResourceReference(TextBlock.TextProperty, "S." + HotkeyNames[i]);
+                label.SetResourceReference(TextBlock.ForegroundProperty, "BrushMuted");
+                var text = new TextBlock { FontSize = 9, VerticalAlignment = VerticalAlignment.Center,
+                                           HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
+                var box = new Border
+                {
+                    Width = 118, Height = 22, CornerRadius = new CornerRadius(5),
+                    BorderThickness = new Thickness(1), Cursor = System.Windows.Input.Cursors.Hand,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Right, Child = text,
+                };
+                box.SetResourceReference(Border.BackgroundProperty, "BrushSurface2");
+                box.SetResourceReference(FrameworkElement.ToolTipProperty, "S.HkTip");
+                box.MouseLeftButtonDown += (_, ev) => { StartHotkeyCapture(id); ev.Handled = true; };
+                var row = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+                row.Children.Add(label);
+                row.Children.Add(box);
+                HotkeyRows.Children.Add(row);
+                _hotkeyBoxes[id] = (box, text);
+            }
+        }
+
+        foreach (var id in HotkeyIds)
+        {
+            var (box, text) = _hotkeyBoxes[id];
+            bool capturing = _capturingHotkey == id;
+            bool inUse     = _hotkeysInUse.Contains(id);
+            bool set       = _hotkeys.TryGetValue(id, out var k) && k.Length == 2;
+            text.Text = capturing ? Loc.T("HkPress") : set ? HotkeyText(k![0], k[1]) : Loc.T("HkNone");
+            text.SetResourceReference(TextBlock.ForegroundProperty,
+                inUse ? "BrushRed" : capturing || set ? "BrushText" : "BrushMuted");
+            box.SetResourceReference(Border.BorderBrushProperty,
+                capturing ? "BrushBlue" : inUse ? "BrushRed" : "BrushBorder");
+            if (inUse) box.ToolTip = Loc.T("HkInUse");
+            else box.SetResourceReference(FrameworkElement.ToolTipProperty, "S.HkTip");
+        }
+    }
+
+    private static string HotkeyText(int mods, int vk)
+    {
+        var parts = new List<string>();
+        if ((mods & MOD_CONTROL) != 0) parts.Add("Ctrl");
+        if ((mods & MOD_ALT)     != 0) parts.Add("Alt");
+        if ((mods & MOD_SHIFT)   != 0) parts.Add("Shift");
+        if ((mods & MOD_WIN)     != 0) parts.Add("Win");
+        var key = KeyInterop.KeyFromVirtualKey(vk);
+        string name = key switch
+        {
+            >= Key.D0 and <= Key.D9 => ((int)(key - Key.D0)).ToString(),
+            >= Key.NumPad0 and <= Key.NumPad9 => "Num " + (int)(key - Key.NumPad0),
+            Key.OemPlus => "+", Key.OemMinus => "-", Key.OemComma => ",", Key.OemPeriod => ".",
+            Key.Prior => "PageUp", Key.Next => "PageDown",
+            _ => key.ToString(),
+        };
+        parts.Add(name);
+        return string.Join("+", parts);
+    }
+
+    private void StartHotkeyCapture(string id)
+    {
+        _capturingHotkey = id;
+        UnregisterAllHotkeys();   // para que las combinaciones actuales lleguen como teclas normales
+        UpdateHotkeyRows();
+        Focus();
+    }
+
+    private void CancelHotkeyCapture()
+    {
+        if (_capturingHotkey == null) return;
+        _capturingHotkey = null;
+        RegisterAllHotkeys();
+    }
+
+    // Mientras se espera una combinación, todas las teclas van acá
+    private void HotkeyCapture_PreviewKeyDown(object sender, WpfKeyEventArgs e)
+    {
+        if (_capturingHotkey == null)
+        {
+            if (e.Key == Key.Escape && _settingsOpen && _settingsPage != 0) { ShowSettingsPage(0); e.Handled = true; }
+            return;
+        }
         e.Handled = true;
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        string id = _capturingHotkey;
+
+        if (key == Key.Escape) { CancelHotkeyCapture(); return; }
+        if (key is Key.Back or Key.Delete)
+        {
+            _hotkeys.Remove(id);
+            _capturingHotkey = null;
+            RegisterAllHotkeys();
+            SaveSettings();
+            return;
+        }
+        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or
+                   Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin) return;   // esperar la tecla
+
+        uint mods = 0;
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) mods |= MOD_CONTROL;
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))     mods |= MOD_ALT;
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))   mods |= MOD_SHIFT;
+        if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin)) mods |= MOD_WIN;
+
+        _hotkeys[id] = new[] { (int)mods, KeyInterop.VirtualKeyFromKey(key) };
+        _capturingHotkey = null;
+        RegisterAllHotkeys();   // si Windows la rechaza, queda marcada "en uso"
+        SaveSettings();
     }
 
     private void OnLanguageChanged()
@@ -1389,6 +1786,7 @@ public partial class MainWindow : Window
         ApplyLanguageTexts();
         UpdatePinBtn();
         UpdateMinimizeButtons();
+        UpdateResetButtons();
         if (_statusText != null) StatusLabel.Text = _statusText();
 
         bool loading = _loading;
@@ -1412,15 +1810,53 @@ public partial class MainWindow : Window
         if (_trayShowItem  != null) _trayShowItem.Text  = Loc.T("TrayShow");
         if (_trayCloseItem != null) _trayCloseItem.Text = Loc.T("TrayClose");
 
-        var btns = new[] { LangBtn0, LangBtn1 };
-        var txts = new[] { LangTxt0, LangTxt1 };
-        for (int i = 0; i < 2; i++)
-        {
-            bool active = (string)btns[i].Tag == Loc.Current;
-            btns[i].SetResourceReference(Border.BorderBrushProperty, active ? "BrushBlue" : "BrushBorder");
-            btns[i].BorderThickness = new Thickness(active ? 2 : 1);
-            txts[i].SetResourceReference(TextBlock.ForegroundProperty, active ? "BrushText" : "BrushMuted");
-        }
+        // Idioma: lista desplegable (los nombres van siempre en su propio idioma)
+        _langComboUpdating = true;
+        if (LangCombo.Items.Count == 0) { LangCombo.Items.Add("Español"); LangCombo.Items.Add("English"); }
+        LangCombo.SelectedIndex = Loc.Current == "en" ? 1 : 0;
+        _langComboUpdating = false;
+        UpdateHotkeyRows();
+    }
+
+    private bool _langComboUpdating;
+
+    private void LangCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_langComboUpdating || LangCombo.SelectedIndex < 0) return;
+        Loc.Set(LangCombo.SelectedIndex == 1 ? "en" : "es");
+    }
+
+    // ── Configuración: inicio (menú + salida) → General / Apariencia ──────────
+
+    private int _settingsPage;   // 0 = inicio, 1 = General, 2 = Apariencia
+
+    private void SettingsMenu_Click(object sender, MouseButtonEventArgs e)
+    {
+        ShowSettingsPage(int.Parse(((FrameworkElement)sender).Tag!.ToString()!));
+        e.Handled = true;
+    }
+
+    private void SettingsBack_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (_settingsPage == 0) return;
+        ShowSettingsPage(0);
+        e.Handled = true;
+    }
+
+    private void ShowSettingsPage(int page)
+    {
+        CancelHotkeyCapture();
+        _settingsPage = page;
+        SettingsHome.Visibility  = page == 0 ? Visibility.Visible : Visibility.Collapsed;
+        GeneralTab.Visibility    = page == 1 ? Visibility.Visible : Visibility.Collapsed;
+        AppearanceTab.Visibility = page == 2 ? Visibility.Visible : Visibility.Collapsed;
+        SettingsBackArrow.Visibility = page == 0 ? Visibility.Collapsed : Visibility.Visible;
+        SettingsHeader.Cursor = page == 0 ? null : System.Windows.Input.Cursors.Hand;
+        SettingsTitleText.SetResourceReference(TextBlock.TextProperty,
+            page == 1 ? "S.GeneralTitle" : page == 2 ? "S.Appearance" : "S.SettingsTitle");
+        if (_settingsOpen)
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render,
+                new Action(() => UpdateNaturalHeight(autoExpand: true)));
     }
 
     // ── Window chrome ─────────────────────────────────────────────────────────
@@ -1544,6 +1980,12 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (msg == WM_HOTKEY)
+        {
+            OnHotkey(wParam.ToInt32());
+            handled = true;
+            return IntPtr.Zero;
+        }
         if (msg == WM_NCLBUTTONDBLCLK)
         {
             int ht = wParam.ToInt32();
@@ -1606,11 +2048,53 @@ public partial class MainWindow : Window
         UpdateLabelColor("sliderAccent",  PitchLabel,   "BrushPitchFill");
         UpdateLabelColor("formantAccent", FormantLabel, "BrushFormantFill");
 
-        // FX pill follows accent color (only update if not frozen / animation-safe)
-        var blue = (System.Windows.Application.Current.Resources["BrushBlue"] as SolidColorBrush)?.Color
-                   ?? WpfColor.FromRgb(0x89, 0xB4, 0xFA);
+        if (FxBtn.Template?.FindName("FxArrow", FxBtn) is TextBlock fxArrow)
+            UpdateLabelColor("label:FX", fxArrow, "BrushBlue");
+
+        // El interruptor de FX sigue el color de FX (o el acento del tema)
         if (FxPill.Background is SolidColorBrush pillBrush && !pillBrush.IsFrozen && _fxEnabled)
-            pillBrush.Color = blue;
+            pillBrush.Color = FxAccent();
+
+        ApplyKnobColors();
+    }
+
+    private static WpfColor FxAccent() =>
+        ThemeService.GetCustomColor("label:FX")
+        ?? (System.Windows.Application.Current.Resources["BrushBlue"] as SolidColorBrush)?.Color
+        ?? WpfColor.FromRgb(0x89, 0xB4, 0xFA);
+
+    // ── Perillas: color propio (click derecho), guardado como los demás colores ──
+
+    private readonly Dictionary<KnobControl, WpfColor> _knobDefaults = new();
+
+    private KnobControl[] AllKnobs => new[]
+    {
+        ReverbWetKnob, ReverbRoomKnob, ReverbDampKnob,
+        DelayWetKnob, DelayTimeKnob, DelayFbKnob,
+        ChorusWetKnob, ChorusRateKnob, ChorusDepthKnob,
+    };
+
+    private void InitKnobColors()
+    {
+        foreach (var knob in AllKnobs)
+        {
+            _knobDefaults[knob] = knob.KnobColor;   // el color de fábrica (XAML)
+            knob.ColorPickRequested += k =>
+                ShowColorPickerPopup(k, c => ThemeService.SetCustomColor("knob:" + k.Name, c));
+        }
+        ApplyKnobColors();
+    }
+
+    private void ApplyKnobColors()
+    {
+        foreach (var (knob, def) in _knobDefaults)
+            knob.KnobColor = ThemeService.GetCustomColorBase("knob:" + knob.Name) ?? def;
+    }
+
+    private void FxBtn_ColorPick(object sender, MouseButtonEventArgs e)
+    {
+        ShowColorPickerPopup((UIElement)sender, c => ThemeService.SetCustomColor("label:FX", c));
+        e.Handled = true;
     }
 
     private static void UpdateLabelColor(string key, TextBlock label, string fallbackResource = "BrushMuted2")
@@ -1648,13 +2132,264 @@ public partial class MainWindow : Window
 
     private void ResetColors_Click(object sender, RoutedEventArgs e)
     {
+        // Solo colores: el contraste queda como está
         HueSlider.Value = 0;
         ThemeService.ResetCustomColors();
         ThemeService.ApplyTextColorMode(0);
-        BrilloSlider.Value = 50;
         ApplyCustomLabelColors();
         SaveSettings();
         HighlightTextBtns();
+    }
+
+    // ── Imagen de fondo: galería ──────────────────────────────────────────────
+    // Cada imagen elegida se copia a %APPDATA%\AudioPitcher\backgrounds (nombre = hash del contenido,
+    // así no se duplica). Queda disponible aunque se borre el original; se elimina desde la galería.
+
+    private string _bgImageFile = "";   // archivo aplicado dentro de backgrounds ("" = ninguna)
+
+    private static string BgFolder => System.IO.Path.Combine(SettingsStore.Folder, "backgrounds");
+
+    private static string[] SavedBackgrounds()
+    {
+        try
+        {
+            if (!System.IO.Directory.Exists(BgFolder)) return Array.Empty<string>();
+            return System.IO.Directory.GetFiles(BgFolder)
+                .OrderBy(System.IO.File.GetCreationTimeUtc)
+                .Select(System.IO.Path.GetFileName).OfType<string>().ToArray();
+        }
+        catch { return Array.Empty<string>(); }
+    }
+
+    // Copia a la galería y devuelve el nombre guardado
+    private static string AddToGallery(string sourcePath)
+    {
+        LoadBgBitmap(sourcePath, 64);   // valida que sea una imagen legible
+        System.IO.Directory.CreateDirectory(BgFolder);
+        string hash;
+        using (var sha = System.Security.Cryptography.SHA1.Create())
+        using (var fs = System.IO.File.OpenRead(sourcePath))
+            hash = Convert.ToHexString(sha.ComputeHash(fs))[..12].ToLowerInvariant();
+        string name = hash + System.IO.Path.GetExtension(sourcePath).ToLowerInvariant();
+        string dest = System.IO.Path.Combine(BgFolder, name);
+        if (!System.IO.File.Exists(dest)) System.IO.File.Copy(sourcePath, dest);
+        return name;
+    }
+
+    // La versión de prueba guardaba una sola copia en la raíz ("background.jpg"): pasarla a la galería
+    private void MigrateOldBackground(string oldFile)
+    {
+        if (string.IsNullOrEmpty(oldFile) || oldFile.Contains('/') || oldFile.Contains('\\')) return;
+        string old = System.IO.Path.Combine(SettingsStore.Folder, oldFile);
+        if (!System.IO.File.Exists(old) || System.IO.File.Exists(System.IO.Path.Combine(BgFolder, oldFile))) return;
+        try
+        {
+            _bgImageFile = AddToGallery(old);
+            System.IO.File.Delete(old);
+        }
+        catch (Exception ex) { Log.Error("Migrar imagen de fondo", ex); }
+    }
+
+    private void AddBgImages()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title       = Loc.T("BgImagePick"),
+            Filter      = Loc.T("BgImageFiles") + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp",
+            Multiselect = true,
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        string? last = null;
+        foreach (var file in dlg.FileNames)
+        {
+            try { last = AddToGallery(file); }
+            catch (Exception ex)
+            {
+                Log.Error("Imagen de fondo", ex);
+                System.Windows.MessageBox.Show(Loc.T("BgImageError") + "\n\n" + System.IO.Path.GetFileName(file),
+                    "Audio Pitcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        if (last == null) return;
+        _bgImageFile = last;   // se aplica la última agregada
+        ApplyBgImage();
+        SaveSettings();
+    }
+
+    private void SelectBgImage(string name)
+    {
+        _bgImageFile = name;
+        ApplyBgImage();
+        SaveSettings();
+    }
+
+    private void DeleteBgImage(string name)
+    {
+        if (name == _bgImageFile) { _bgImageFile = ""; BgImageRect.Fill = null; }
+        try { System.IO.File.Delete(System.IO.Path.Combine(BgFolder, name)); }
+        catch (Exception ex) { Log.Error("Borrar imagen de fondo", ex); }
+        ApplyBgImage();
+        SaveSettings();
+    }
+
+    // OnLoad + reducido: no deja el archivo bloqueado y no gasta memoria de más
+    private static BitmapImage LoadBgBitmap(string path, int width = 900)
+    {
+        var bmp = new BitmapImage();
+        bmp.BeginInit();
+        bmp.UriSource        = new Uri(path);
+        bmp.CacheOption      = BitmapCacheOption.OnLoad;
+        bmp.CreateOptions    = BitmapCreateOptions.IgnoreImageCache;
+        bmp.DecodePixelWidth = width;
+        bmp.EndInit();
+        bmp.Freeze();
+        return bmp;
+    }
+
+    private void ApplyBgImage()
+    {
+        string path = string.IsNullOrEmpty(_bgImageFile) ? "" : System.IO.Path.Combine(BgFolder, _bgImageFile);
+        bool has = path != "" && System.IO.File.Exists(path);
+        if (has)
+        {
+            try
+            {
+                var brush = new ImageBrush(LoadBgBitmap(path)) { Stretch = Stretch.UniformToFill };
+                brush.Freeze();
+                BgImageRect.Fill = BgHeaderRect.Fill = brush;
+            }
+            catch (Exception ex) { Log.Error("Imagen de fondo", ex); has = false; }
+        }
+        if (!has) { BgImageRect.Fill = BgHeaderRect.Fill = null; _bgImageFile = ""; }
+        // Con imagen, la franja desenfocada reemplaza la línea bajo el título
+        HeaderSeparator.Visibility = has ? Visibility.Collapsed : Visibility.Visible;
+        UpdateHeaderBlur();
+
+        BgImageHost.Visibility    = has ? Visibility.Visible : Visibility.Collapsed;
+        BgImageOptions.Visibility = has ? Visibility.Visible : Visibility.Collapsed;
+        RefreshBgGallery();
+        if (_settingsOpen)   // la galería y los controles cambian de alto dentro de Configuración
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render,
+                new Action(() => UpdateNaturalHeight(autoExpand: true)));
+    }
+
+    // Miniaturas: [imágenes guardadas…] [agregar]. Click aplica; click en la que está puesta la saca.
+    // La × de cada una aparece al pasar el mouse.
+    private void RefreshBgGallery()
+    {
+        BgGallery.Children.Clear();
+
+        Border Tile(bool selected)
+        {
+            var t = new Border
+            {
+                Width = 44, Height = 28, CornerRadius = new CornerRadius(5), Cursor = System.Windows.Input.Cursors.Hand,
+                Margin = new Thickness(0, 0, 6, 6), BorderThickness = new Thickness(selected ? 2 : 1),
+            };
+            t.SetResourceReference(Border.BorderBrushProperty, selected ? "BrushBlue" : "BrushBorder");
+            t.SetResourceReference(Border.BackgroundProperty, "BrushSurface2");
+            return t;
+        }
+
+        foreach (var name in SavedBackgrounds())
+        {
+            var tile = Tile(name == _bgImageFile);
+            try
+            {
+                tile.Background = new ImageBrush(LoadBgBitmap(System.IO.Path.Combine(BgFolder, name), 96))
+                    { Stretch = Stretch.UniformToFill };
+            }
+            catch { continue; }   // archivo dañado: no se muestra
+
+            var del = new Border
+            {
+                Width = 15, Height = 15, CornerRadius = new CornerRadius(7.5), Visibility = Visibility.Collapsed,
+                Background = new SolidColorBrush(WpfColor.FromArgb(0xDD, 0x10, 0x10, 0x18)),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, -5, -5, 0), Cursor = System.Windows.Input.Cursors.Hand,
+                Child = new TextBlock { Text = "×", FontSize = 11, Foreground = System.Windows.Media.Brushes.White,
+                                        HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                                        VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, -2, 0, 0) },
+            };
+            string n = name;
+            del.MouseLeftButtonDown += (_, e) => { DeleteBgImage(n); e.Handled = true; };
+            tile.Child = new Grid { Children = { del } };
+            tile.MouseEnter += (_, _) => del.Visibility = Visibility.Visible;
+            tile.MouseLeave += (_, _) => del.Visibility = Visibility.Collapsed;
+            tile.MouseLeftButtonDown += (_, e) => { SelectBgImage(n == _bgImageFile ? "" : n); e.Handled = true; };
+            BgGallery.Children.Add(tile);
+        }
+
+        // Agregar: ícono de "imagen con +"
+        var add = Tile(false);
+        var icon = new System.Windows.Shapes.Path
+        {
+            Data = (Geometry)FindResource("AddImageGeometry"), Stretch = Stretch.Uniform,
+            Width = 15, Height = 15, HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushMuted");
+        add.Child = icon;
+        add.MouseEnter += (_, _) => icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushText");
+        add.MouseLeave += (_, _) => icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushMuted");
+        add.MouseLeftButtonDown += (_, e) => { AddBgImages(); e.Handled = true; };
+        BgGallery.Children.Add(add);
+    }
+
+    private void BgImageAmount_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (BgImageVeil == null) return;
+        BgImageVeil.Opacity     = 1 - e.NewValue / 100.0;
+        BgImageAmountLabel.Text = $"{(int)e.NewValue}%";
+        if (IsLoaded) SaveSettings();   // el XAML fija el valor inicial antes de que exista todo
+    }
+
+    private void BgImageBlur_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (BgImageBlurFx == null) return;
+        BgImageBlurFx.Radius  = e.NewValue;
+        UpdateHeaderBlur();
+        BgImageBlurLabel.Text = $"{(int)e.NewValue}";
+        if (IsLoaded) SaveSettings();
+    }
+
+    // Recorte con las esquinas redondeadas de la ventana
+    private void BgImageHost_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        BgImageHost.Clip = new RectangleGeometry(new Rect(e.NewSize), 13, 13);
+        UpdateHeaderBlur();
+    }
+
+    // Franja del título: bastante más desenfocada que el resto y fundida hacia abajo (sin corte)
+    private void UpdateHeaderBlur()
+    {
+        if (BgHeaderBlurFx == null || HeaderGrid == null) return;
+        BgHeaderBlurFx.Radius = Math.Max(30, BgImageBlurFx.Radius * 2);
+        double h = HeaderGrid.ActualHeight + HeaderGrid.Margin.Top + HeaderGrid.Margin.Bottom;
+        if (h <= 0) return;
+        const double inset = 40;   // el rectángulo arranca 40 px por encima (margen negativo)
+        var mask = new LinearGradientBrush
+        {
+            MappingMode = BrushMappingMode.Absolute,
+            StartPoint  = new WpfPoint(0, inset + h - 10),
+            EndPoint    = new WpfPoint(0, inset + h + 26),
+        };
+        mask.GradientStops.Add(new GradientStop(Colors.Black, 0));
+        mask.GradientStops.Add(new GradientStop(Colors.Transparent, 1));
+        mask.Freeze();
+        BgHeaderRect.OpacityMask = mask;
+
+        // Tinte: misma franja, pero este rectángulo no tiene el margen negativo
+        var band = new LinearGradientBrush
+        {
+            MappingMode = BrushMappingMode.Absolute,
+            StartPoint  = new WpfPoint(0, h - 10),
+            EndPoint    = new WpfPoint(0, h + 26),
+        };
+        band.GradientStops.Add(new GradientStop(Colors.Black, 0));
+        band.GradientStops.Add(new GradientStop(Colors.Transparent, 1));
+        band.Freeze();
+        BgHeaderTint.OpacityMask = band;
     }
 
     // ── Recorder ──────────────────────────────────────────────────────────────
@@ -1923,7 +2658,7 @@ public partial class MainWindow : Window
         };
         var hexLabel = new System.Windows.Controls.TextBlock
         {
-            FontSize = 10, VerticalAlignment = VerticalAlignment.Center, Text = Loc.T("DragToPick")
+            FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Text = Loc.T("DragToPick")
         };
         hexLabel.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "BrushSubtext");
         var info = new System.Windows.Controls.StackPanel

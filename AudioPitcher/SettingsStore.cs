@@ -11,13 +11,26 @@ namespace AudioPitcher
         public float  HueShift         { get; set; } = 0f;
         public int    BgPreset         { get; set; } = 0;
         public int    TextColorMode    { get; set; } = 0;
-        public int    TextBrightness   { get; set; } = 50;
+        public int    TextBrightness   { get; set; } = 100;
         public bool   MinimizeToTray   { get; set; } = false;
         public string Language         { get; set; } = "";   // "" = todavía no elegido → idioma de Windows
         public string SkippedUpdateVersion { get; set; } = "";
         public string LastRealOutputId { get; set; } = "";   // última salida real (no VB-CABLE)
         public string OutputDeviceName { get; set; } = "";
         public string TargetProcessName { get; set; } = "";   // "" = VB-Cable
+        // Posición y tamaño de la ventana al cerrar (null = nunca guardado → centrada)
+        public double? WindowLeft   { get; set; }
+        public double? WindowTop    { get; set; }
+        public double? WindowWidth  { get; set; }
+        public double? WindowHeight { get; set; }
+        // Imagen de fondo: archivo copiado a la carpeta de ajustes ("" = sin imagen)
+        public string BgImageFile   { get; set; } = "";
+        public int    BgImageAmount { get; set; } = 35;   // 0-100: cuánto se ve la imagen
+        public int    BgImageBlur   { get; set; } = 10;   // radio de desenfoque
+        // Tono por app: proceso (minúsculas, "*" = sistema) → [pitch, formant]
+        public Dictionary<string, double[]> AppPitch { get; set; } = new();
+        // Atajos globales: id ("toggle", "up", "down", "show") → [modificadores, tecla virtual]
+        public Dictionary<string, int[]> Hotkeys { get; set; } = new();
         public List<string> RecentApps { get; set; } = new(); // últimas apps ruteadas, más reciente primero
         public List<string> FavoriteApps { get; set; } = new(); // apps con estrella, fijas arriba
         // preset index (as string) → (colorKey → "#RRGGBB")
@@ -29,6 +42,8 @@ namespace AudioPitcher
         private static readonly string _path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "AudioPitcher", "settings.json");
+
+        public static string Folder => Path.GetDirectoryName(_path)!;
 
         public static AppSettings Load()
         {

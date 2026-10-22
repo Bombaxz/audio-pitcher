@@ -25,4 +25,6 @@ if (-not $iscc) { throw 'Falta Inno Setup 6 (winget install JRSoftware.InnoSetup
 & $iscc /Q "/DAppVersion=$version" "$PSScriptRoot\AudioPitcher.iss"
 if ($LASTEXITCODE) { throw 'Inno Setup fallo' }
 
-Write-Host "Listo: $PSScriptRoot\Output\AudioPitcher-Setup.exe"
+# Copia idéntica que baja el actualizador: así las descargas de Setup.exe son solo de la web
+Copy-Item "$PSScriptRoot\Output\AudioPitcher-Setup.exe" "$PSScriptRoot\Output\AudioPitcher-Update.exe" -Force
+Write-Host "Listo: $PSScriptRoot\Output\AudioPitcher-Setup.exe (+ AudioPitcher-Update.exe)"

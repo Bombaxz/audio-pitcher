@@ -8,7 +8,7 @@
         MouseLeftButtonDown="Window_MouseDown"
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
-        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType">
 
     <WindowChrome.WindowChrome>
@@ -20,6 +20,25 @@
     <Window.Resources>
 
         <!-- Engranaje (FillRule EvenOdd deja el agujero central hueco) -->
+        <!-- Íconos del menú de Configuración (Material: tune, brush) -->
+        <Geometry x:Key="TuneGeometry">M3,17v2h6v-2H3z M3,5v2h10V5H3z M13,21v-2h8v-2h-8v-2h-2v6H13z M7,9v2H3v2h4v2h2V9H7z M21,13v-2H11v2H21z M15,9h2V7h4V5h-4V3h-2V9z</Geometry>
+        <Geometry x:Key="AddImageGeometry">M19,7v2.99c0,0-1.99,0.01-2,0V7h-3c0,0,0.01-1.99,0-2h3V2h2v3h3v2H19z M16,11V8h-3V5H5C3.9,5,3,5.9,3,7v12c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2v-8H16z M5,19l3-4l2,3l3-4l4,5H5z</Geometry>
+        <Geometry x:Key="BrushGeometry">M7,14c-1.66,0-3,1.34-3,3c0,1.31-1.16,2-2,2c0.92,1.22,2.49,2,4,2c2.21,0,4-1.79,4-4C10,15.34,8.66,14,7,14z M20.71,4.63l-1.34-1.34c-0.39-0.39-1.02-0.39-1.41,0L9,12.25L11.75,15l8.96-8.96C21.1,5.65,21.1,5.02,20.71,4.63z</Geometry>
+
+        <!-- Entrada del menú de Configuración: resalta al pasar el mouse -->
+        <Style x:Key="MenuRow" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,9"/>
+            <Setter Property="Margin" Value="-8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource BrushHover}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Geometry x:Key="GearGeometry">M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z</Geometry>
 
         <!-- ComboBox item -->
@@ -275,8 +294,28 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
+            <!-- Imagen de fondo personalizada: debajo de todo, sin clics. El margen negativo
+                 esconde los bordes difusos del desenfoque; el velo (color del tema) la atenúa. -->
+            <Grid x:Name="BgImageHost" Grid.RowSpan="2" Visibility="Collapsed" IsHitTestVisible="False"
+                  ClipToBounds="True" SizeChanged="BgImageHost_SizeChanged">
+                <Rectangle x:Name="BgImageRect" Margin="-40">
+                    <Rectangle.Effect>
+                        <BlurEffect x:Name="BgImageBlurFx" Radius="0" KernelType="Gaussian" RenderingBias="Quality"/>
+                    </Rectangle.Effect>
+                </Rectangle>
+                <!-- Franja del título más desenfocada (vidrio esmerilado); se funde hacia abajo con una máscara -->
+                <Rectangle x:Name="BgHeaderRect" Margin="-40">
+                    <Rectangle.Effect>
+                        <BlurEffect x:Name="BgHeaderBlurFx" Radius="30" KernelType="Gaussian" RenderingBias="Quality"/>
+                    </Rectangle.Effect>
+                </Rectangle>
+                <Rectangle x:Name="BgImageVeil" Fill="{DynamicResource BrushBg}" Opacity="0.65"/>
+                <!-- Franja del título: un poco más de tinte, fundido hacia abajo -->
+                <Rectangle x:Name="BgHeaderTint" Fill="{DynamicResource BrushBg}" Opacity="0.45"/>
+            </Grid>
+
             <!-- ── HEADER ──────────────────────────────────────────────── -->
-            <Grid Grid.Row="0" Margin="16,12,12,12" MouseLeftButtonDown="Window_MouseDown">
+            <Grid x:Name="HeaderGrid" Grid.Row="0" Margin="16,12,12,12" MouseLeftButtonDown="Window_MouseDown">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Rectangle x:Name="StatusLogo" Width="17" Height="18" Fill="{DynamicResource BrushMuted}"
                                Margin="0,0,7,0" VerticalAlignment="Center"
@@ -287,7 +326,7 @@
                     </Rectangle>
                     <TextBlock x:Name="TitleLabel" Text="AUDIO PITCHER"
                                Foreground="{DynamicResource BrushSubtext}"
-                               FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                               FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel x:Name="HeaderBtns" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="UpdateBtn" Style="{StaticResource IconBtn}" Visibility="Collapsed"
@@ -326,9 +365,9 @@
                     </Button>
                     <Button x:Name="PinBtn" Content="⊙" Style="{StaticResource IconBtn}" FontSize="12"
                             Click="PinBtn_Click"/>
-                    <Button x:Name="MinimizeBtn" Content="—" Style="{StaticResource IconBtn}" FontSize="11"
+                    <Button x:Name="MinimizeBtn" Content="—" Style="{StaticResource IconBtn}" FontSize="12"
                             Click="Minimize_Click"/>
-                    <Button Content="✕" Style="{StaticResource IconBtn}" FontSize="11" Click="CloseButton_Click"/>
+                    <Button Content="✕" Style="{StaticResource IconBtn}" FontSize="12" Click="CloseButton_Click"/>
                 </StackPanel>
             </Grid>
 
@@ -336,14 +375,14 @@
             <Border x:Name="ShadeContent" Grid.Row="1" ClipToBounds="True">
             <StackPanel RenderOptions.ClearTypeHint="Enabled"><!-- ClipToBounds del padre apaga ClearType; el hint va en el hijo -->
 
-            <Rectangle Height="1" Fill="{DynamicResource BrushOverlay}"/>
+            <Rectangle x:Name="HeaderSeparator" Height="1" Fill="{DynamicResource BrushOverlay}"/>
 
             <!-- ── MAIN PANEL ──────────────────────────────────────────── -->
             <StackPanel x:Name="MainPanel" Margin="16,12,16,16">
 
                 <!-- ── APP A PITCHEAR ── -->
                 <TextBlock Text="APP" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,5"/>
+                           FontSize="10" FontWeight="Bold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="AppCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,14"
                           ToolTip="{DynamicResource S.AppTip}"
                           DropDownOpened="AppCombo_DropDownOpened"
@@ -394,13 +433,12 @@
                 <!-- ── PITCH ── -->
                 <Grid Margin="0,0,0,4">
                     <TextBlock x:Name="PitchHeader" Text="PITCH" Foreground="{DynamicResource BrushMuted2}"
-                               FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                               FontSize="10" FontWeight="Bold" VerticalAlignment="Center"
                                MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:PITCH" Cursor="Hand"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Grid>
-                            <TextBlock x:Name="PitchLabel" Text="+0.0" Foreground="{DynamicResource BrushPitchFill}"
+                            <TextBlock x:Name="PitchLabel" MouseWheel="PitchWheel" Text="+0.0" Foreground="{DynamicResource BrushPitchFill}"
                                        FontSize="20" FontWeight="Bold" Cursor="SizeWE"
-                                       ToolTip="{DynamicResource S.ValueTip}"
                                        MouseLeftButtonDown="PitchLabel_MouseDown"
                                        MouseMove="PitchLabel_MouseMove"
                                        MouseLeftButtonUp="PitchLabel_MouseUp"
@@ -415,40 +453,39 @@
                                      KeyDown="PitchEditBox_KeyDown" LostFocus="PitchEditBox_LostFocus"/>
                         </Grid>
                         <TextBlock Text=" st" Foreground="{DynamicResource BrushMuted2}"
-                                   FontSize="9" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
-                        <Button Style="{StaticResource IconBtn}" Click="ResetPitch_Click" Margin="4,0,0,0"
+                                   FontSize="10" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        <Button x:Name="PitchResetBtn" Style="{StaticResource IconBtn}" Click="ResetPitch_Click" Margin="4,0,0,0"
                                 ToolTip="{DynamicResource S.ResetTip}" Foreground="{DynamicResource BrushMuted}">
-                            <TextBlock Text="⟲" FontSize="13"/>
+                            <TextBlock Text="⟲" FontSize="13" RenderTransformOrigin="0.5,0.5"/>
                         </Button>
                     </StackPanel>
                 </Grid>
-                <Slider x:Name="PitchSlider" Minimum="-12" Maximum="12" Value="0"
+                <Slider x:Name="PitchSlider" PreviewMouseWheel="PitchWheel" Minimum="-12" Maximum="12" Value="0"
                         SmallChange="0.1" LargeChange="1"
                         ValueChanged="PitchSlider_ValueChanged" Margin="0,0,0,2"
                         Template="{StaticResource SliderTplPitch}"
                         PreviewMouseLeftButtonDown="PitchSlider_PreviewMouseDown"
                         MouseRightButtonUp="Slider_ColorPick"/>
                 <Grid Margin="8,0,8,12">
-                    <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="9"/>
-                    <TextBlock Text="0"   Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Center"/>
-                    <TextBlock Text="+12" Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Right"/>
+                    <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="10"/>
+                    <TextBlock Text="0"   Foreground="{DynamicResource BrushHint}" FontSize="10" HorizontalAlignment="Center"/>
+                    <TextBlock Text="+12" Foreground="{DynamicResource BrushHint}" FontSize="10" HorizontalAlignment="Right"/>
                 </Grid>
 
                 <!-- ── FORMANT ── -->
                 <Grid Margin="0,0,0,4">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock x:Name="FormantHeader" Text="FORMANT" Foreground="{DynamicResource BrushMuted2}"
-                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   FontSize="10" FontWeight="Bold" VerticalAlignment="Center"
                                    MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:FORMANT" Cursor="Hand"/>
                         <TextBlock x:Name="FormantUnavailLabel" Text="{DynamicResource S.NeedsRubberBand}"
-                                   Foreground="{DynamicResource BrushMuted}" FontSize="8" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource BrushMuted}" FontSize="9" VerticalAlignment="Center"
                                    Visibility="Collapsed"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Grid>
-                            <TextBlock x:Name="FormantLabel" Text="+0.0" Foreground="{DynamicResource BrushFormantFill}"
+                            <TextBlock x:Name="FormantLabel" MouseWheel="FormantWheel" Text="+0.0" Foreground="{DynamicResource BrushFormantFill}"
                                        FontSize="20" FontWeight="Bold" Cursor="SizeWE"
-                                       ToolTip="{DynamicResource S.ValueTip}"
                                        MouseLeftButtonDown="FormantLabel_MouseDown"
                                        MouseMove="FormantLabel_MouseMove"
                                        MouseLeftButtonUp="FormantLabel_MouseUp"
@@ -463,42 +500,42 @@
                                      KeyDown="FormantEditBox_KeyDown" LostFocus="FormantEditBox_LostFocus"/>
                         </Grid>
                         <TextBlock Text=" st" Foreground="{DynamicResource BrushMuted2}"
-                                   FontSize="9" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
-                        <Button Style="{StaticResource IconBtn}" Click="ResetFormant_Click" Margin="4,0,0,0"
+                                   FontSize="10" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        <Button x:Name="FormantResetBtn" Style="{StaticResource IconBtn}" Click="ResetFormant_Click" Margin="4,0,0,0"
                                 ToolTip="{DynamicResource S.ResetTip}" Foreground="{DynamicResource BrushMuted}">
-                            <TextBlock Text="⟲" FontSize="13"/>
+                            <TextBlock Text="⟲" FontSize="13" RenderTransformOrigin="0.5,0.5"/>
                         </Button>
                     </StackPanel>
                 </Grid>
-                <Slider x:Name="FormantSlider" Minimum="-12" Maximum="12" Value="0"
+                <Slider x:Name="FormantSlider" PreviewMouseWheel="FormantWheel" Minimum="-12" Maximum="12" Value="0"
                         SmallChange="0.1" LargeChange="1"
                         ValueChanged="FormantSlider_ValueChanged" Margin="0,0,0,2"
                         Template="{StaticResource SliderTplFormant}"
                         PreviewMouseLeftButtonDown="FormantSlider_PreviewMouseDown"
-                        MouseRightButtonUp="Slider_ColorPick"/>
+                        MouseRightButtonUp="FormantLabel_ColorPick"/>
                 <Grid Margin="8,0,8,14">
-                    <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="9"/>
-                    <TextBlock Text="0"   Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Center"/>
-                    <TextBlock Text="+12" Foreground="{DynamicResource BrushHint}" FontSize="9" HorizontalAlignment="Right"/>
+                    <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="10"/>
+                    <TextBlock Text="0"   Foreground="{DynamicResource BrushHint}" FontSize="10" HorizontalAlignment="Center"/>
+                    <TextBlock Text="+12" Foreground="{DynamicResource BrushHint}" FontSize="10" HorizontalAlignment="Right"/>
                 </Grid>
 
                 <!-- ── FX toggle ── -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,10">
                     <Border x:Name="FxPill" Width="28" Height="15" CornerRadius="7.5"
                             Background="{DynamicResource BrushBlue}" Cursor="Hand" VerticalAlignment="Center"
-                            MouseLeftButtonDown="FxOnOff_Click" MouseRightButtonUp="Slider_ColorPick"
+                            MouseLeftButtonDown="FxOnOff_Click" MouseRightButtonUp="FxBtn_ColorPick"
                             Margin="0,0,8,0">
                         <Ellipse x:Name="FxPillDot" Width="11" Height="11" Fill="White"
                                  HorizontalAlignment="Left" Margin="15,0,0,0"/>
                     </Border>
-                    <Button x:Name="FxBtn" Click="ToggleFx_Click" Cursor="Hand" VerticalAlignment="Center">
+                    <Button x:Name="FxBtn" Click="ToggleFx_Click" MouseRightButtonUp="FxBtn_ColorPick" Cursor="Hand" VerticalAlignment="Center">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <StackPanel x:Name="Sp" Orientation="Horizontal">
                                     <TextBlock x:Name="FxTextLabel" Text="FX" Foreground="{DynamicResource BrushBlue}"
-                                               FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                                               FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="FxArrow" Text=" ▸" Foreground="{DynamicResource BrushBlue}"
-                                               FontSize="9" VerticalAlignment="Center"/>
+                                               FontSize="10" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
@@ -517,10 +554,10 @@
                     <!-- REVERB -->
                     <Grid Cursor="Hand" MouseLeftButtonDown="ReverbToggle_Click" Margin="0,0,0,4">
                         <TextBlock x:Name="ReverbHeader" Text="REVERB" Foreground="{DynamicResource BrushMuted2}"
-                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   FontSize="10" FontWeight="Bold" VerticalAlignment="Center"
                                    MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:REVERB"/>
                         <TextBlock x:Name="ReverbArrow" Text="▾" Foreground="{DynamicResource BrushMuted}"
-                                   FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                   FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
                     <Border x:Name="ReverbSection" MaxHeight="90" ClipToBounds="True">
                         <Viewbox Stretch="Uniform" HorizontalAlignment="Center" MaxWidth="180">
@@ -535,10 +572,10 @@
                     <!-- DELAY -->
                     <Grid Cursor="Hand" MouseLeftButtonDown="DelayToggle_Click" Margin="0,0,0,4">
                         <TextBlock x:Name="DelayHeader" Text="DELAY" Foreground="{DynamicResource BrushMuted2}"
-                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   FontSize="10" FontWeight="Bold" VerticalAlignment="Center"
                                    MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:DELAY"/>
                         <TextBlock x:Name="DelayArrow" Text="▾" Foreground="{DynamicResource BrushMuted}"
-                                   FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                   FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
                     <Border x:Name="DelaySection" MaxHeight="90" ClipToBounds="True">
                         <Viewbox Stretch="Uniform" HorizontalAlignment="Center" MaxWidth="180">
@@ -553,10 +590,10 @@
                     <!-- CHORUS -->
                     <Grid Cursor="Hand" MouseLeftButtonDown="ChorusToggle_Click" Margin="0,0,0,4">
                         <TextBlock x:Name="ChorusHeader" Text="CHORUS" Foreground="{DynamicResource BrushMuted2}"
-                                   FontSize="9" FontWeight="Bold" VerticalAlignment="Center"
+                                   FontSize="10" FontWeight="Bold" VerticalAlignment="Center"
                                    MouseRightButtonUp="SectionLabel_ColorPick" Tag="label:CHORUS"/>
                         <TextBlock x:Name="ChorusArrow" Text="▾" Foreground="{DynamicResource BrushMuted}"
-                                   FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                   FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
                     <Border x:Name="ChorusSection" MaxHeight="90" ClipToBounds="True">
                         <Viewbox Stretch="Uniform" HorizontalAlignment="Center" MaxWidth="180">
@@ -573,28 +610,63 @@
 
                 <!-- Status -->
                 <TextBlock x:Name="StatusLabel" Text="{DynamicResource S.StatusNoAudio}"
-                           Foreground="{DynamicResource BrushMuted2}" FontSize="9"
+                           Foreground="{DynamicResource BrushMuted2}" FontSize="10"
                            TextWrapping="Wrap" TextAlignment="Center"/>
 
             </StackPanel>
 
             <!-- ── SETTINGS PANEL ──────────────────────────────────────── -->
-            <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="16,12,16,16"
-                        TextOptions.TextFormattingMode="Display">
-                <TextBlock Text="{DynamicResource S.SettingsTitle}" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,12"/>
+            <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="16,12,16,16">
+                <!-- Título; en General/Apariencia es un "‹ volver" -->
+                <StackPanel x:Name="SettingsHeader" Orientation="Horizontal" Margin="0,0,0,12" Background="Transparent"
+                            MouseLeftButtonDown="SettingsBack_Click">
+                    <TextBlock x:Name="SettingsBackArrow" Text="‹" FontSize="15" Margin="0,-4,6,0" Visibility="Collapsed"
+                               Foreground="{DynamicResource BrushMuted2}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="SettingsTitleText" Text="{DynamicResource S.SettingsTitle}" Foreground="{DynamicResource BrushMuted2}"
+                               FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
+                </StackPanel>
 
-                <TextBlock Text="{DynamicResource S.AudioOutput}" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,5"/>
-                <ComboBox x:Name="OutputCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,4"
-                          SelectionChanged="OutputCombo_SelectionChanged"/>
-                <TextBlock Text="{DynamicResource S.OutputHint}"
-                           Foreground="{DynamicResource BrushHint}" FontSize="9"
-                           TextWrapping="Wrap" Margin="0,0,0,14"/>
+                <!-- Inicio: salida de audio + menú -->
+                <StackPanel x:Name="SettingsHome">
+                    <TextBlock Text="{DynamicResource S.AudioOutput}" Foreground="{DynamicResource BrushMuted2}"
+                               FontSize="10" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="OutputCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,4"
+                              SelectionChanged="OutputCombo_SelectionChanged"/>
+                    <TextBlock Text="{DynamicResource S.OutputHint}"
+                               Foreground="{DynamicResource BrushHint}" FontSize="10"
+                               TextWrapping="Wrap" Margin="0,0,0,14"/>
+                    <Border Style="{StaticResource MenuRow}" Tag="1" MouseLeftButtonDown="SettingsMenu_Click">
+                        <DockPanel>
+                            <Path DockPanel.Dock="Left" Data="{StaticResource TuneGeometry}" Fill="{DynamicResource BrushBlue}"
+                                  Stretch="Uniform" Width="14" Height="14" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock DockPanel.Dock="Right" Text="›" FontSize="15" Margin="0,-3,0,0"
+                                       Foreground="{DynamicResource BrushMuted}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S.TabGeneral}" FontSize="12"
+                                       Foreground="{DynamicResource BrushText}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+                    <Rectangle Height="1" Fill="{DynamicResource BrushOverlay}" Margin="0,2"/>
+                    <Border Style="{StaticResource MenuRow}" Tag="2" MouseLeftButtonDown="SettingsMenu_Click">
+                        <DockPanel>
+                            <Path DockPanel.Dock="Left" Data="{StaticResource BrushGeometry}" Fill="{DynamicResource BrushBlue}"
+                                  Stretch="Uniform" Width="14" Height="14" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock DockPanel.Dock="Right" Text="›" FontSize="15" Margin="0,-3,0,0"
+                                       Foreground="{DynamicResource BrushMuted}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource S.TabAppearance}" FontSize="12"
+                                       Foreground="{DynamicResource BrushText}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="GeneralTab" Visibility="Collapsed">
+                <TextBlock Text="{DynamicResource S.Language}" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="10" FontWeight="Bold" Margin="0,0,0,5"/>
+                <ComboBox x:Name="LangCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,14"
+                          SelectionChanged="LangCombo_SelectionChanged"/>
 
                 <!-- Motor de pitch -->
                 <TextBlock Text="{DynamicResource S.PitchEngine}" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                           FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                     <Border x:Name="EngBtn0" Height="22" CornerRadius="5"
                             BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
@@ -604,7 +676,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="EngDot0" Width="6" Height="6" Margin="0,0,5,0"
                                      Fill="{DynamicResource BrushBorder}"/>
-                            <TextBlock x:Name="EngTxt0" Text="RubberBand" Foreground="{DynamicResource BrushMuted}" FontSize="8"/>
+                            <TextBlock x:Name="EngTxt0" Text="RubberBand" Foreground="{DynamicResource BrushMuted}" FontSize="9"/>
                         </StackPanel>
                     </Border>
                     <Border x:Name="EngBtn1" Height="22" CornerRadius="5"
@@ -615,13 +687,13 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="EngDot1" Width="6" Height="6" Margin="0,0,5,0"
                                      Fill="{DynamicResource BrushGreen}"/>
-                            <TextBlock x:Name="EngTxt1" Text="Signalsmith" Foreground="{DynamicResource BrushText}" FontSize="8"/>
+                            <TextBlock x:Name="EngTxt1" Text="Signalsmith" Foreground="{DynamicResource BrushText}" FontSize="9"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
 
                 <TextBlock Text="{DynamicResource S.OnMinimize}" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                           FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
                     <Border x:Name="MinBtn0" Height="22" CornerRadius="5"
                             BorderBrush="{DynamicResource BrushBlue}" BorderThickness="2"
@@ -630,7 +702,7 @@
                             MouseLeftButtonDown="MinimizeMode_Click" Tag="0"
                             ToolTip="{DynamicResource S.TaskbarTip}">
                         <TextBlock x:Name="MinTxt0" Text="{DynamicResource S.Taskbar}" Foreground="{DynamicResource BrushText}"
-                                   FontSize="8" VerticalAlignment="Center"/>
+                                   FontSize="9" VerticalAlignment="Center"/>
                     </Border>
                     <Border x:Name="MinBtn1" Height="22" CornerRadius="5"
                             BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
@@ -639,46 +711,30 @@
                             MouseLeftButtonDown="MinimizeMode_Click" Tag="1"
                             ToolTip="{DynamicResource S.TrayTip}">
                         <TextBlock x:Name="MinTxt1" Text="{DynamicResource S.Tray}" Foreground="{DynamicResource BrushMuted}"
-                                   FontSize="8" VerticalAlignment="Center"/>
+                                   FontSize="9" VerticalAlignment="Center"/>
                     </Border>
                 </StackPanel>
 
-                <TextBlock Text="{DynamicResource S.Language}" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                    <Border x:Name="LangBtn0" Height="22" CornerRadius="5"
-                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
-                            Background="{DynamicResource BrushSurface2}"
-                            Cursor="Hand" Padding="8,0" Margin="0,0,6,0"
-                            MouseLeftButtonDown="Language_Click" Tag="es">
-                        <TextBlock x:Name="LangTxt0" Text="Español" Foreground="{DynamicResource BrushMuted}"
-                                   FontSize="8" VerticalAlignment="Center"/>
-                    </Border>
-                    <Border x:Name="LangBtn1" Height="22" CornerRadius="5"
-                            BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1"
-                            Background="{DynamicResource BrushSurface2}"
-                            Cursor="Hand" Padding="8,0"
-                            MouseLeftButtonDown="Language_Click" Tag="en">
-                        <TextBlock x:Name="LangTxt1" Text="English" Foreground="{DynamicResource BrushMuted}"
-                                   FontSize="8" VerticalAlignment="Center"/>
-                    </Border>
+                <!-- Atajos globales (filas generadas en código) -->
+                <TextBlock Text="{DynamicResource S.Shortcuts}" Foreground="{DynamicResource BrushMuted2}"
+                           FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
+                <StackPanel x:Name="HotkeyRows"/>
                 </StackPanel>
 
+                <StackPanel x:Name="AppearanceTab" Visibility="Collapsed">
                 <!-- Apariencia -->
-                <Grid Margin="0,0,0,8">
-                    <TextBlock Text="{DynamicResource S.Appearance}" Foreground="{DynamicResource BrushMuted2}"
-                               FontSize="9" FontWeight="Bold" VerticalAlignment="Center"/>
+                <Grid Margin="0,-28,0,10">
                     <Button HorizontalAlignment="Right" Style="{StaticResource IconBtn}"
                             Click="ResetColors_Click" ToolTip="{DynamicResource S.ResetColorsTip}"
                             Foreground="{DynamicResource BrushMuted}" Padding="4,2">
-                        <TextBlock Text="↺ reset" FontSize="8"/>
+                        <TextBlock Text="↺ reset" FontSize="9"/>
                     </Button>
                 </Grid>
 
                 <Grid Margin="0,0,0,3">
-                    <TextBlock Text="HUE" Foreground="{DynamicResource BrushMuted2}" FontSize="9" FontWeight="Bold"/>
+                    <TextBlock Text="HUE" Foreground="{DynamicResource BrushMuted2}" FontSize="10" FontWeight="Bold"/>
                     <TextBlock x:Name="HueLabel" Text="0°" Foreground="{DynamicResource BrushMuted}"
-                               FontSize="9" HorizontalAlignment="Right"/>
+                               FontSize="10" HorizontalAlignment="Right"/>
                 </Grid>
                 <Slider x:Name="HueSlider" Minimum="-180" Maximum="180" Value="0"
                         SmallChange="1" LargeChange="10"
@@ -686,13 +742,13 @@
                         ValueChanged="HueSlider_ValueChanged"/>
 
                 <TextBlock Text="{DynamicResource S.Text}" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                           FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                     <Border x:Name="TxtBtn0" Width="52" Height="22" CornerRadius="5"
                             Background="{DynamicResource BrushSurface2}" BorderBrush="{DynamicResource BrushBlue}"
                             BorderThickness="2" Cursor="Hand" Margin="0,0,6,0"
                             MouseLeftButtonDown="TextColor_Click" Tag="0">
-                        <TextBlock Text="Normal" Foreground="{DynamicResource BrushText}" FontSize="8"
+                        <TextBlock Text="Normal" Foreground="{DynamicResource BrushText}" FontSize="9"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <Border x:Name="TxtBtn2" Width="52" Height="22" CornerRadius="5"
@@ -706,43 +762,43 @@
                                 <GradientStop Color="#CBA6F7" Offset="1"/>
                             </LinearGradientBrush>
                         </Border.Background>
-                        <TextBlock Text="Color" Foreground="White" FontSize="8" FontWeight="Bold"
+                        <TextBlock Text="Color" Foreground="White" FontSize="9" FontWeight="Bold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                 </StackPanel>
 
                 <Grid Margin="0,0,0,3">
-                    <TextBlock Text="{DynamicResource S.Contrast}" Foreground="{DynamicResource BrushMuted}" FontSize="9"/>
-                    <TextBlock x:Name="BrilloLabel" Text="50%" Foreground="{DynamicResource BrushMuted}"
-                               FontSize="9" HorizontalAlignment="Right"/>
+                    <TextBlock Text="{DynamicResource S.Contrast}" Foreground="{DynamicResource BrushMuted}" FontSize="10"/>
+                    <TextBlock x:Name="BrilloLabel" Text="100%" Foreground="{DynamicResource BrushMuted}"
+                               FontSize="10" HorizontalAlignment="Right"/>
                 </Grid>
-                <Slider x:Name="BrilloSlider" Minimum="0" Maximum="100" Value="50"
+                <Slider x:Name="BrilloSlider" Minimum="0" Maximum="100" Value="100"
                         SmallChange="1" LargeChange="10"
                         Template="{StaticResource SliderTpl}" Margin="0,0,0,12"
                         ValueChanged="BrilloSlider_ValueChanged"/>
 
                 <TextBlock Text="{DynamicResource S.Background}" Foreground="{DynamicResource BrushMuted2}"
-                           FontSize="9" FontWeight="Bold" Margin="0,0,0,6"/>
+                           FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                     <Border x:Name="BgBtn0" Width="36" Height="22" CornerRadius="5"
                             Background="#1A1B2E" BorderBrush="{DynamicResource BrushBlue}"
                             BorderThickness="2" Cursor="Hand" Margin="0,0,6,0"
                             MouseLeftButtonDown="BgPreset_Click" Tag="0">
-                        <TextBlock Text="Dark" Foreground="#A6ADC8" FontSize="8"
+                        <TextBlock Text="Dark" Foreground="#A6ADC8" FontSize="9"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <Border x:Name="BgBtn1" Width="36" Height="22" CornerRadius="5"
                             Background="#000000" BorderBrush="{DynamicResource BrushBorder}"
                             BorderThickness="1" Cursor="Hand" Margin="0,0,6,0"
                             MouseLeftButtonDown="BgPreset_Click" Tag="1">
-                        <TextBlock Text="Black" Foreground="#A6ADC8" FontSize="8"
+                        <TextBlock Text="Black" Foreground="#A6ADC8" FontSize="9"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <Border x:Name="BgBtn2" Width="36" Height="22" CornerRadius="5"
                             Background="#0D0D18" BorderBrush="{DynamicResource BrushBorder}"
                             BorderThickness="1" Cursor="Hand" Margin="0,0,6,0"
                             MouseLeftButtonDown="BgPreset_Click" Tag="2">
-                        <TextBlock Text="Deep" Foreground="#A6ADC8" FontSize="8"
+                        <TextBlock Text="Deep" Foreground="#A6ADC8" FontSize="9"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <Border x:Name="BgBtn3" Width="36" Height="22" CornerRadius="5"
@@ -758,27 +814,50 @@
                                 <GradientStop Color="#CBA6F7" Offset="1"/>
                             </LinearGradientBrush>
                         </Border.Background>
-                        <TextBlock Text="Hue" Foreground="White" FontSize="8" FontWeight="Bold"
+                        <TextBlock Text="Hue" Foreground="White" FontSize="9" FontWeight="Bold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <Border x:Name="BgBtn4" Width="36" Height="22" CornerRadius="5"
                             Background="White" BorderBrush="{DynamicResource BrushBorder}"
                             BorderThickness="1" Cursor="Hand"
                             MouseLeftButtonDown="BgPreset_Click" Tag="4">
-                        <TextBlock Text="White" Foreground="#333333" FontSize="8"
+                        <TextBlock Text="White" Foreground="#333333" FontSize="9"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                 </StackPanel>
 
-                <TextBlock Margin="0,16,0,0" FontSize="8" Foreground="{DynamicResource BrushHint}">
+                <!-- Galería de imágenes de fondo (se arma en código): Ninguna · guardadas · + -->
+                <WrapPanel x:Name="BgGallery" Margin="0,8,0,0"/>
+                <StackPanel x:Name="BgImageOptions" Visibility="Collapsed" Margin="0,10,0,0">
+                    <Grid Margin="0,0,0,3">
+                        <TextBlock Text="{DynamicResource S.BgImageAmount}" Foreground="{DynamicResource BrushMuted}" FontSize="10"/>
+                        <TextBlock x:Name="BgImageAmountLabel" Text="35%" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="10" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Slider x:Name="BgImageAmountSlider" Minimum="0" Maximum="100" Value="35"
+                            SmallChange="1" LargeChange="10" Template="{StaticResource SliderTpl}" Margin="0,0,0,8"
+                            ValueChanged="BgImageAmount_ValueChanged"/>
+                    <Grid Margin="0,0,0,3">
+                        <TextBlock Text="{DynamicResource S.BgImageBlur}" Foreground="{DynamicResource BrushMuted}" FontSize="10"/>
+                        <TextBlock x:Name="BgImageBlurLabel" Text="10" Foreground="{DynamicResource BrushMuted}"
+                                   FontSize="10" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Slider x:Name="BgImageBlurSlider" Minimum="0" Maximum="30" Value="10"
+                            SmallChange="1" LargeChange="5" Template="{StaticResource SliderTpl}"
+                            ValueChanged="BgImageBlur_ValueChanged"/>
+                </StackPanel>
+
+                </StackPanel>
+
+                <TextBlock Margin="0,16,0,0" FontSize="9" TextWrapping="Wrap" Foreground="{DynamicResource BrushHint}">
                     <Run x:Name="VersionRun" Text="v1.0.0"/>
-                    <Run Text="  ·  "/>
+                    <Run Text=" · "/>
                     <Hyperlink Click="SourceLink_Click" TextDecorations="{x:Null}"
                                Foreground="{DynamicResource BrushHint}"><Run Text="{DynamicResource S.SourceCode}"/></Hyperlink>
-                    <Run Text="  ·  "/>
+                    <Run Text=" · "/>
                     <Hyperlink Click="LicensesLink_Click" TextDecorations="{x:Null}"
                                Foreground="{DynamicResource BrushHint}"><Run Text="{DynamicResource S.Licenses}"/></Hyperlink>
-                    <Run Text="  ·  "/>
+                    <Run Text=" · "/>
                     <Hyperlink Click="ReportLink_Click" TextDecorations="{x:Null}"
                                Foreground="{DynamicResource BrushHint}"
                                ToolTip="{DynamicResource S.ReportTip}"><Run Text="{DynamicResource S.Report}"/></Hyperlink>
@@ -803,15 +882,15 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button x:Name="RecPlayBtn" Style="{StaticResource IconBtn}" Click="RecPlay_Click"
                                 ToolTip="{DynamicResource S.PreviewTip}" Visibility="Collapsed">
-                            <TextBlock x:Name="RecPlayIcon" Text="▶" FontSize="11"/>
+                            <TextBlock x:Name="RecPlayIcon" Text="▶" FontSize="12"/>
                         </Button>
                         <Button x:Name="RecPauseBtn" Style="{StaticResource IconBtn}" Click="RecPause_Click"
                                 ToolTip="{DynamicResource S.PauseTip}">
-                            <TextBlock x:Name="RecPauseIcon" Text="⏸" FontSize="11"/>
+                            <TextBlock x:Name="RecPauseIcon" Text="⏸" FontSize="12"/>
                         </Button>
                         <Button x:Name="RecStopBtn" Style="{StaticResource IconBtn}" Click="RecStop_Click"
                                 ToolTip="{DynamicResource S.StopTip}">
-                            <TextBlock Text="⏹" FontSize="11"/>
+                            <TextBlock Text="⏹" FontSize="12"/>
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -824,7 +903,7 @@
                     </Border>
                     <TextBlock x:Name="NormGainLabel" Visibility="Collapsed"
                                HorizontalAlignment="Right" VerticalAlignment="Top"
-                               Margin="0,5,8,0" FontSize="9" FontWeight="Bold"
+                               Margin="0,5,8,0" FontSize="10" FontWeight="Bold"
                                Foreground="#A6E3A1"/>
                 </Grid>
 
@@ -845,7 +924,7 @@
                             <Ellipse x:Name="NormDot" Width="6" Height="6" Margin="0,0,5,0"
                                      Fill="{DynamicResource BrushBorder}"/>
                             <TextBlock Text="NORM" Foreground="{DynamicResource BrushMuted}"
-                                       FontSize="8" FontWeight="Bold"/>
+                                       FontSize="9" FontWeight="Bold"/>
                         </StackPanel>
                     </Border>
 
@@ -857,7 +936,7 @@
                             <Border x:Name="Bd" Background="{DynamicResource BrushSurface}"
                                     BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1" CornerRadius="6">
                                 <TextBlock Text="{DynamicResource S.SaveWav}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource BrushText}" FontSize="10"/>
+                                           Foreground="{DynamicResource BrushText}" FontSize="11"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">

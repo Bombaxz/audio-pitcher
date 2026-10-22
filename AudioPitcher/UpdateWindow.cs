@@ -41,7 +41,7 @@ namespace AudioPitcher
             Topmost               = true;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             UseLayoutRounding     = true;
-            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
+            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
             SetResourceReference(BackgroundProperty, "BrushBg");
             MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
             KeyDown += (_, e) => { if (e.Key == Key.Escape) Cancel(); };
