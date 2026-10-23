@@ -12,6 +12,8 @@ namespace AudioPitcher
         public int    BgPreset         { get; set; } = 0;
         public int    TextColorMode    { get; set; } = 0;
         public int    TextBrightness   { get; set; } = 100;
+        public bool   AccentVivid      { get; set; } = false;   // acentos fuertes en fondos oscuros (si no, pastel)
+        public bool   AccentVividLight { get; set; } = true;    // ídem en White / imagen clara (si no, suaves)
         public bool   MinimizeToTray   { get; set; } = false;
         public string Language         { get; set; } = "";   // "" = todavía no elegido → idioma de Windows
         public string SkippedUpdateVersion { get; set; } = "";

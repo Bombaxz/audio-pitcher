@@ -25,6 +25,13 @@
         <Geometry x:Key="AddImageGeometry">M19,7v2.99c0,0-1.99,0.01-2,0V7h-3c0,0,0.01-1.99,0-2h3V2h2v3h3v2H19z M16,11V8h-3V5H5C3.9,5,3,5.9,3,7v12c0,1.1,0.9,2,2,2h12c1.1,0,2-0.9,2-2v-8H16z M5,19l3-4l2,3l3-4l4,5H5z</Geometry>
         <Geometry x:Key="BrushGeometry">M7,14c-1.66,0-3,1.34-3,3c0,1.31-1.16,2-2,2c0.92,1.22,2.49,2,4,2c2.21,0,4-1.79,4-4C10,15.34,8.66,14,7,14z M20.71,4.63l-1.34-1.34c-0.39-0.39-1.02-0.39-1.41,0L9,12.25L11.75,15l8.96-8.96C21.1,5.65,21.1,5.02,20.71,4.63z</Geometry>
 
+        <!-- Íconos de la grabadora (trazos de Figma, 12×12; el de grabar 13×13) -->
+        <Geometry x:Key="PauseGeometry">M3.8,1.5H2.8C2.358,1.5 2,1.858 2,2.3V9.7C2,10.142 2.358,10.5 2.8,10.5H3.8C4.242,10.5 4.6,10.142 4.6,9.7V2.3C4.6,1.858 4.242,1.5 3.8,1.5Z M9.2,1.5H8.2C7.758,1.5 7.4,1.858 7.4,2.3V9.7C7.4,10.142 7.758,10.5 8.2,10.5H9.2C9.642,10.5 10,10.142 10,9.7V2.3C10,1.858 9.642,1.5 9.2,1.5Z</Geometry>
+        <Geometry x:Key="StopGeometry">M9,1.5H3C2.172,1.5 1.5,2.172 1.5,3V9C1.5,9.828 2.172,10.5 3,10.5H9C9.828,10.5 10.5,9.828 10.5,9V3C10.5,2.172 9.828,1.5 9,1.5Z</Geometry>
+        <Geometry x:Key="PlayGeometry">M3.2,2.3C3.2,1.65 3.9,1.25 4.45,1.6L10.3,5.3C10.82,5.63 10.82,6.37 10.3,6.7L4.45,10.4C3.9,10.75 3.2,10.35 3.2,9.7Z</Geometry>
+        <Geometry x:Key="RecFrameGeometry">M9.75,0.75H3.25C1.869,0.75 0.75,1.869 0.75,3.25V9.75C0.75,11.131 1.869,12.25 3.25,12.25H9.75C11.131,12.25 12.25,11.131 12.25,9.75V3.25C12.25,1.869 11.131,0.75 9.75,0.75Z</Geometry>
+        <Geometry x:Key="RecDotGeometry">M6.5,9.3C8.046,9.3 9.3,8.046 9.3,6.5C9.3,4.954 8.046,3.7 6.5,3.7C4.954,3.7 3.7,4.954 3.7,6.5C3.7,8.046 4.954,9.3 6.5,9.3Z</Geometry>
+
         <!-- Entrada del menú de Configuración: resalta al pasar el mouse -->
         <Style x:Key="MenuRow" TargetType="Border">
             <Setter Property="Background" Value="Transparent"/>
@@ -161,6 +168,89 @@
         <Style TargetType="Slider">
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         </Style>
+
+        <!-- Barra de HUE: el recorrido muestra los colores reales (BrushHueSpectrum: según Suave/Vivo) -->
+        <ControlTemplate x:Key="SliderTplHue" TargetType="Slider">
+            <Grid Height="22">
+                <Border Height="8" CornerRadius="4" Margin="8,0" Background="{DynamicResource BrushHueSpectrum}">
+                    <local:GlassEdge CornerRadius="4"/>
+                </Border>
+                <Track x:Name="PART_Track" Margin="8,0">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Command="Slider.DecreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="Transparent" Height="8"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Command="Slider.IncreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="Transparent" Height="8"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb>
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Grid>
+                                        <Ellipse Width="18" Height="18" Fill="White"><Ellipse.Effect><DropShadowEffect Color="Black" BlurRadius="4" Opacity="{DynamicResource ThumbShadowOpacity}" ShadowDepth="0.5" Direction="270"/></Ellipse.Effect></Ellipse>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </ControlTemplate>
+
+        <!-- Barra de Imagen: cuadriculado de transparencia que se funde hacia opaco (BrushChecker + BrushOpacityFade) -->
+        <ControlTemplate x:Key="SliderTplOpacity" TargetType="Slider">
+            <Grid Height="22">
+                <Border Height="8" CornerRadius="4" Margin="8,0" Background="{DynamicResource BrushChecker}">
+                    <Grid>
+                        <Border CornerRadius="4" Background="{DynamicResource BrushOpacityFade}"/>
+                        <local:GlassEdge CornerRadius="4"/>
+                    </Grid>
+                </Border>
+                <Track x:Name="PART_Track" Margin="8,0">
+                    <Track.DecreaseRepeatButton>
+                        <RepeatButton Command="Slider.DecreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="Transparent" Height="8"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.DecreaseRepeatButton>
+                    <Track.IncreaseRepeatButton>
+                        <RepeatButton Command="Slider.IncreaseLarge">
+                            <RepeatButton.Template>
+                                <ControlTemplate TargetType="RepeatButton">
+                                    <Border Background="Transparent" Height="8"/>
+                                </ControlTemplate>
+                            </RepeatButton.Template>
+                        </RepeatButton>
+                    </Track.IncreaseRepeatButton>
+                    <Track.Thumb>
+                        <Thumb>
+                            <Thumb.Template>
+                                <ControlTemplate TargetType="Thumb">
+                                    <Grid>
+                                        <Ellipse Width="18" Height="18" Fill="White"><Ellipse.Effect><DropShadowEffect Color="Black" BlurRadius="4" Opacity="{DynamicResource ThumbShadowOpacity}" ShadowDepth="0.5" Direction="270"/></Ellipse.Effect></Ellipse>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Track.Thumb>
+                </Track>
+            </Grid>
+        </ControlTemplate>
 
         <!-- Pitch slider template -->
         <ControlTemplate x:Key="SliderTpl" TargetType="Slider">
@@ -339,10 +429,10 @@
                     </Button>
                     <Button x:Name="RecBtn" Style="{StaticResource IconBtn}"
                             Click="RecBtn_Click" ToolTip="{DynamicResource S.RecTip}">
-                        <TextBlock x:Name="RecBtnIcon" Text="⏺" FontSize="10"
-                                   TextOptions.TextFormattingMode="Ideal">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
+                        <!-- Ícono de grabar (Figma): marco redondeado + punto; rojo al pasar el mouse o grabando -->
+                        <ContentControl x:Name="RecBtnIcon" Width="13" Height="13" Focusable="False" IsTabStop="False">
+                            <ContentControl.Style>
+                                <Style TargetType="ContentControl">
                                     <Setter Property="Foreground" Value="{DynamicResource BrushMuted}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
@@ -350,8 +440,14 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                            </ContentControl.Style>
+                            <Grid>
+                                <Path Data="{StaticResource RecFrameGeometry}" StrokeThickness="1.3"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}"/>
+                                <Path Data="{StaticResource RecDotGeometry}"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ContentControl}}"/>
+                            </Grid>
+                        </ContentControl>
                     </Button>
                     <Button x:Name="SettingsBtn" Style="{StaticResource IconBtn}"
                             Click="ToggleSettings_Click" ToolTip="{DynamicResource S.SettingsTip}">
@@ -699,8 +795,13 @@
                 </Grid>
                 <Slider x:Name="HueSlider" Minimum="-180" Maximum="180" Value="0"
                         SmallChange="1" LargeChange="10"
-                        Template="{StaticResource SliderTpl}" Margin="0,0,0,12"
+                        Template="{StaticResource SliderTplHue}" Margin="0,0,0,10"
                         ValueChanged="HueSlider_ValueChanged"/>
+                <!-- Acentos suaves o vivos (se recuerda aparte para fondos oscuros y claros) -->
+                <StackPanel x:Name="VividRow" Margin="0,0,0,12">
+                    <TextBlock Text="{DynamicResource S.AccentLabel}" Foreground="{DynamicResource BrushMuted}" FontSize="10" Margin="0,0,0,5"/>
+                    <ContentControl x:Name="VividSegHost"/>
+                </StackPanel>
 
                 <TextBlock Text="{DynamicResource S.Text}" Foreground="{DynamicResource BrushMuted2}"
                            FontSize="10" FontWeight="Bold" Margin="0,0,0,6"/>
@@ -742,7 +843,7 @@
                                    FontSize="10" HorizontalAlignment="Right"/>
                     </Grid>
                     <Slider x:Name="BgImageAmountSlider" Minimum="0" Maximum="100" Value="35"
-                            SmallChange="1" LargeChange="10" Template="{StaticResource SliderTpl}" Margin="0,0,0,8"
+                            SmallChange="1" LargeChange="10" Template="{StaticResource SliderTplOpacity}" Margin="0,0,0,8"
                             ValueChanged="BgImageAmount_ValueChanged"/>
                     <Grid Margin="0,0,0,3">
                         <TextBlock Text="{DynamicResource S.BgImageBlur}" Foreground="{DynamicResource BrushMuted}" FontSize="10"/>
@@ -791,15 +892,18 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button x:Name="RecPlayBtn" Style="{StaticResource IconBtn}" Click="RecPlay_Click"
                                 ToolTip="{DynamicResource S.PreviewTip}" Visibility="Collapsed">
-                            <TextBlock x:Name="RecPlayIcon" Text="▶" FontSize="12"/>
+                            <Path x:Name="RecPlayIcon" Data="{StaticResource PlayGeometry}" Width="12" Height="12"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                         </Button>
                         <Button x:Name="RecPauseBtn" Style="{StaticResource IconBtn}" Click="RecPause_Click"
                                 ToolTip="{DynamicResource S.PauseTip}">
-                            <TextBlock x:Name="RecPauseIcon" Text="⏸" FontSize="12"/>
+                            <Path x:Name="RecPauseIcon" Data="{StaticResource PauseGeometry}" Width="12" Height="12"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                         </Button>
                         <Button x:Name="RecStopBtn" Style="{StaticResource IconBtn}" Click="RecStop_Click"
                                 ToolTip="{DynamicResource S.StopTip}">
-                            <TextBlock Text="⏹" FontSize="12"/>
+                            <Path Data="{StaticResource StopGeometry}" Width="12" Height="12"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                         </Button>
                     </StackPanel>
                 </Grid>

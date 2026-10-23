@@ -1353,7 +1353,7 @@ public partial class MainWindow : Window
 
     // ── Controles segmentados (Motor, Al minimizar, Texto, Fondo) ─────────────
 
-    private SegmentedControl? _engineSeg, _minimizeSeg, _textSeg, _bgSeg, _toneSeg;
+    private SegmentedControl? _engineSeg, _minimizeSeg, _textSeg, _bgSeg, _toneSeg, _vividSeg;
 
     private static readonly (string name, byte r, byte g, byte b)[] BgPresetColors =
     {
@@ -1431,8 +1431,27 @@ public partial class MainWindow : Window
         _toneSeg.SelectionChanged += SetImageTone;
         ToneSegHost.Content = _toneSeg;
 
-        // El Hue cambia el color real del fondo "Hue"
-        ThemeService.ThemeChanged += (_, _) => _bgSeg.RefreshColors();
+        // Color: Suave · Vivo (se recuerda aparte para fondos oscuros y claros); la pastilla muestra
+        // el azul que resulta en el modo actual, corrido por el HUE
+        static System.Windows.Media.Brush AccentPill(WpfColor c) { var b = new SolidColorBrush(ThemeService.ShiftHue(c, ThemeService.HueShift)); b.Freeze(); return b; }
+        static bool Light() => ThemeService.BgPreset == 4;
+        _vividSeg = new SegmentedControl(new[]
+        {
+            new SegmentedControl.Option { Label = () => Loc.T("AccentSoft"),
+                PillBrush = () => AccentPill(Light() ? ThemeService.SoftAccent(0x1E, 0x66, 0xF5) : WpfColor.FromRgb(0x89, 0xB4, 0xFA)) },
+            new SegmentedControl.Option { Label = () => Loc.T("AccentVivid"),
+                PillBrush = () => AccentPill(Light() ? WpfColor.FromRgb(0x1E, 0x66, 0xF5) : ThemeService.VividAccent(0x1E, 0x66, 0xF5)) },
+        }, stretch: false);
+        _vividSeg.SelectionChanged += i => { ThemeService.ApplyAccentVivid(i == 1); SaveSettings(); };
+        VividSegHost.Content = _vividSeg;
+
+        // El Hue cambia el color real del fondo "Hue" y de las pastillas Suave/Vivo; al cambiar de
+        // modo, el selector muestra la elección de ese modo
+        ThemeService.ThemeChanged += (_, _) =>
+        {
+            _bgSeg.RefreshColors(); _vividSeg.RefreshColors();
+            _vividSeg.Select(ThemeService.AccentVivid ? 1 : 0);
+        };
     }
 
     // ── FX knob handlers ──────────────────────────────────────────────────────
@@ -1462,6 +1481,7 @@ public partial class MainWindow : Window
             ThemeService.ApplyHueShift(s.HueShift);
             ThemeService.ApplyTextColorMode(s.TextColorMode);
             ThemeService.ApplyTextBrightness(s.TextBrightness);
+            ThemeService.SetAccentVivid(s.AccentVivid, s.AccentVividLight);
 
             // Sync UI sliders (suppress save via _loading flag)
             HueSlider.Value    = s.HueShift;
@@ -1534,6 +1554,8 @@ public partial class MainWindow : Window
             BgPreset         = ThemeService.BgPreset,
             TextColorMode    = ThemeService.TextColorMode,
             TextBrightness   = ThemeService.TextBrightness,
+            AccentVivid      = ThemeService.AccentVividDark,
+            AccentVividLight = ThemeService.AccentVividLight,
             OutputDeviceName = devName,
             TargetProcessName = _targetProcessName,
             RecentApps       = _recentApps,
@@ -1891,7 +1913,7 @@ public partial class MainWindow : Window
     // Textos que pone el código (los del XAML se actualizan solos por DynamicResource)
     private void ApplyLanguageTexts()
     {
-        _engineSeg?.RefreshTexts(); _minimizeSeg?.RefreshTexts(); _textSeg?.RefreshTexts(); _bgSeg?.RefreshTexts(); _toneSeg?.RefreshTexts();
+        _engineSeg?.RefreshTexts(); _minimizeSeg?.RefreshTexts(); _textSeg?.RefreshTexts(); _bgSeg?.RefreshTexts(); _toneSeg?.RefreshTexts(); _vividSeg?.RefreshTexts();
         if (!AudioPolicyConfig.IsSupported)      AppCombo.ToolTip = Loc.T("NoPerAppRouting");
         if (_pendingUpdate != null) UpdateBtn.ToolTip = Loc.T("UpdateTo", _pendingUpdate.Version.ToString(3));
         if (_trayShowItem  != null) _trayShowItem.Text  = Loc.T("TrayShow");
@@ -2556,7 +2578,7 @@ public partial class MainWindow : Window
             _recorder.Reset();
             Waveform.ResetScrolling();
             RecSaveBtn.IsEnabled = false;
-            RecPauseIcon.Text    = "⏸";
+            RecPauseIcon.Data    = (Geometry)FindResource("PauseGeometry");
             RecTimerLabel.Text   = "0:00.0";
             SetRecDot();
 
@@ -2574,7 +2596,7 @@ public partial class MainWindow : Window
         else
         {
             StopRecorderCleanup();
-            RecBtnIcon.ClearValue(TextBlock.ForegroundProperty);
+            RecBtnIcon.ClearValue(ForegroundProperty);
         }
     }
 
@@ -2600,7 +2622,7 @@ public partial class MainWindow : Window
         output.PlaybackStopped += (_, _) => Dispatcher.BeginInvoke(() => { if (_previewOut == output) StopPreview(); });
         output.Play();
 
-        RecPlayIcon.Text = "■";
+        RecPlayIcon.Data = (Geometry)FindResource("StopGeometry");
         _previewTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
         _previewTimer.Tick += (_, _) => { if (_previewSrc != null) Waveform.PlayheadRatio = _previewSrc.PositionRatio; };
         _previewTimer.Start();
@@ -2616,7 +2638,7 @@ public partial class MainWindow : Window
         output?.Stop();
         output?.Dispose();
         Waveform.PlayheadRatio = -1;
-        RecPlayIcon.Text = "▶";
+        RecPlayIcon.Data = (Geometry)FindResource("PlayGeometry");
     }
 
     private void StopRecorderCleanup()
@@ -2635,12 +2657,12 @@ public partial class MainWindow : Window
         if (_recorder.State == RecorderEngine.RecordState.Recording)
         {
             _recorder.Pause();
-            RecPauseIcon.Text = "▶";
+            RecPauseIcon.Data = (Geometry)FindResource("PlayGeometry");
         }
         else if (_recorder.State == RecorderEngine.RecordState.Paused)
         {
             _recorder.Resume();
-            RecPauseIcon.Text = "⏸";
+            RecPauseIcon.Data = (Geometry)FindResource("PauseGeometry");
         }
         SetRecDot();
     }

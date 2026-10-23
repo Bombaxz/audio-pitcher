@@ -22,8 +22,9 @@ namespace AudioPitcher
 {
     internal sealed class KnobControl : FrameworkElement
     {
-        private const double W = 54, KnobH = 50, TotalH = 70;
-        private const double Cx = W / 2, Cy = KnobH / 2;
+        // Medidas del diseño (Figma): dial de 54×56 con el círculo centrado en (27, 29), nombre a 57, valor a 70; 81 en total
+        private const double W = 54, KnobH = 56, TotalH = 81;
+        private const double Cx = W / 2, Cy = 29;
         private const double OuterR = 22, TrackR = 16;
         private const double StartDeg = -135, EndDeg = 135;
 
@@ -158,7 +159,7 @@ namespace AudioPitcher
 
             const double dpi = 1.0;
             var lft = MakeFt(Label ?? "", 8.5, new SolidColorBrush(labelColor), dpi, bold: false);
-            dc.DrawText(lft, new WpfPoint(Cx - lft.Width / 2, KnobH + 2));
+            dc.DrawText(lft, new WpfPoint(Cx - lft.Width / 2, KnobH + 1));
 
             var vft = MakeFt(FormatValue(), 8.0, new SolidColorBrush(textColor), dpi, bold: true);
             dc.DrawText(vft, new WpfPoint(Cx - vft.Width / 2, KnobH + 14));

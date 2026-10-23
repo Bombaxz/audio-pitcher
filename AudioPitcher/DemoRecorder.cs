@@ -350,10 +350,10 @@ public partial class MainWindow
         await Tween(v => Waveform.TrimStartRatio = v, 0, 0.14, 700);
         await Tween(v => Waveform.TrimEndRatio = v, 1, 0.82, 700);
         await Wait(400);
-        RecPlayIcon.Text = "■";
+        RecPlayIcon.Data = (Geometry)FindResource("StopGeometry");
         await Tween(v => Waveform.PlayheadRatio = v, 0.14, 0.82, 2200);
         Waveform.PlayheadRatio = -1;
-        RecPlayIcon.Text = "▶";
+        RecPlayIcon.Data = (Geometry)FindResource("PlayGeometry");
         await Wait(800);
     }
 #endif

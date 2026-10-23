@@ -12,12 +12,35 @@ namespace AudioPitcher
 {
     internal sealed class WaveformControl : FrameworkElement
     {
-        // ── Static brushes/pens (frozen, reused per render) ───────────────────
-        private static readonly WpfPen GreenPen = MakePen(WpfColor.FromRgb(0xA6, 0xE3, 0xA1), 1.5);
-        private static readonly WpfPen BluePen  = MakePen(WpfColor.FromRgb(0x89, 0xB4, 0xFA), 1.5);
-        private static readonly WpfPen RedPen   = MakePen(WpfColor.FromRgb(0xF3, 0x8B, 0xA8), 2.0);
-        private static readonly WpfPen PlayheadPen = MakePen(WpfColor.FromRgb(0xFF, 0xFF, 0xFF), 1.5);
-        private static readonly SolidColorBrush DimBrush = MakeBrush(WpfColor.FromArgb(0xCC, 0x1A, 0x1B, 0x2E));
+        // ── Pens/brushes del tema (congelados; se rehacen cuando cambia el tema) ──
+        private WpfPen GreenPen = MakePen(WpfColor.FromRgb(0xA6, 0xE3, 0xA1), 1.5);
+        private WpfPen BluePen  = MakePen(WpfColor.FromRgb(0x89, 0xB4, 0xFA), 1.5);
+        private WpfPen RedPen   = MakePen(WpfColor.FromRgb(0xF3, 0x8B, 0xA8), 2.0);
+        private WpfPen PlayheadPen = MakePen(WpfColor.FromRgb(0xFF, 0xFF, 0xFF), 1.5);
+        private SolidColorBrush DimBrush = MakeBrush(WpfColor.FromArgb(0xCC, 0x1A, 0x1B, 0x2E));
+
+        // Colores del diseño: barras con los acentos del tema; en White la caja es clara y el cursor oscuro
+        private void RefreshTheme()
+        {
+            var res = System.Windows.Application.Current.Resources;
+            WpfColor C(string key, WpfColor fallback) => (res[key] as SolidColorBrush)?.Color ?? fallback;
+            bool light = ThemeService.BgPreset == 4;
+            GreenPen    = MakePen(C("BrushGreen", WpfColor.FromRgb(0xA6, 0xE3, 0xA1)), 1.5);
+            BluePen     = MakePen(C("BrushBlue",  WpfColor.FromRgb(0x89, 0xB4, 0xFA)), 1.5);
+            RedPen      = MakePen(C("BrushRed",   WpfColor.FromRgb(0xF3, 0x8B, 0xA8)), 2.0);
+            PlayheadPen = MakePen(light ? WpfColor.FromRgb(0x1F, 0x1F, 0x1F) : WpfColor.FromRgb(0xFF, 0xFF, 0xFF), 1.5);
+            var box = light ? WpfColor.FromRgb(0xF4, 0xF4, 0xF6) : WpfColor.FromRgb(0x1A, 0x1B, 0x2E);
+            DimBrush = MakeBrush(WpfColor.FromArgb(0xCC, box.R, box.G, box.B));
+            InvalidateVisual();
+        }
+        private void OnThemeChanged(object? sender, EventArgs e) => RefreshTheme();
+
+        public WaveformControl()
+        {
+            RefreshTheme();
+            Loaded   += (_, _) => { ThemeService.ThemeChanged += OnThemeChanged; RefreshTheme(); };
+            Unloaded += (_, _) => ThemeService.ThemeChanged -= OnThemeChanged;
+        }
 
         private static WpfPen MakePen(WpfColor c, double w)
         {
@@ -194,7 +217,7 @@ namespace AudioPitcher
             }
         }
 
-        private static void DrawHandle(DrawingContext dc, double x, double h, bool isStart)
+        private void DrawHandle(DrawingContext dc, double x, double h, bool isStart)
         {
             double arm = 6.0;
             dc.DrawLine(RedPen, new WpfPoint(x, 0), new WpfPoint(x, h));

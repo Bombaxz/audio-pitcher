@@ -38,6 +38,16 @@ namespace AudioPitcher
             ("BrushRed",    0xF3, 0x8B, 0xA8),
         };
 
+        // Accents of the White preset (Catppuccin Latte); also the base of "Vivo" on dark backgrounds
+        private static readonly (string Key, byte R, byte G, byte B)[] _lattePalette =
+        {
+            ("BrushBlue",   0x1E, 0x66, 0xF5),
+            ("BrushGreen",  0x40, 0xA0, 0x2B),
+            ("BrushYellow", 0xDF, 0x8E, 0x1D),
+            ("BrushMauve",  0x88, 0x39, 0xEF),
+            ("BrushRed",    0xD2, 0x0F, 0x39),
+        };
+
         // Text base values
         private static readonly (string Key, byte R, byte G, byte B)[] _textPalette =
         {
@@ -53,6 +63,8 @@ namespace AudioPitcher
         private static int   _textColorMode  = 0;
         private static int   _textBrightness = 100; // 0–100
         private static bool  _glass;                // modo imagen: controles de vidrio
+        private static bool  _vividDark;            // acentos "Vivo" (fuertes) en fondos oscuros (por defecto Suave = pastel)
+        private static bool  _vividLight = true;    // ídem en White / imagen clara (por defecto Vivo = diseño)
 
         // Custom colors per preset — store BASE color (pre-hue); hue applied on read
         private static readonly System.Collections.Generic.Dictionary<int,
@@ -63,12 +75,17 @@ namespace AudioPitcher
         public static int   TextColorMode  => _textColorMode;
         public static int   TextBrightness => _textBrightness;
         public static bool  Glass          => _glass;
+        public static bool  AccentVivid      => _bgPreset == 4 ? _vividLight : _vividDark;   // el del modo actual
+        public static bool  AccentVividDark  => _vividDark;
+        public static bool  AccentVividLight => _vividLight;
 
         public static void ApplyHueShift(float degrees)    { _hueShift = degrees;      UpdateResources(); }
         public static void ApplyBgPreset(int preset)       { _bgPreset = preset;       UpdateResources(); }
         public static void ApplyTextColorMode(int mode)    { _textColorMode = mode is 1 or 2 ? mode : 0; UpdateResources(); }   // 0 normal, 1 negro, 2 color
         public static void ApplyTextBrightness(int value)  { _textBrightness = value;  UpdateResources(); }
         public static void ApplyImageMode(bool on, int preset) { _glass = on; _bgPreset = preset; UpdateResources(); }
+        public static void ApplyAccentVivid(bool vivid)        { if (_bgPreset == 4) _vividLight = vivid; else _vividDark = vivid; UpdateResources(); }
+        public static void SetAccentVivid(bool dark, bool light) { _vividDark = dark; _vividLight = light; UpdateResources(); }
 
         public static void SetCustomColor(string key, WpfColor baseColor)
         {
@@ -180,21 +197,46 @@ namespace AudioPitcher
             }
 
             // ── Accents — always hue ──────────────────────────────────────────
-            if (_bgPreset == 4) // White — Catppuccin Latte (saturated for light bg)
+            // White: Vivo = Latte (diseño), Suave = Latte más claro y menos saturado.
+            // Fondos oscuros: Suave = pastel (Mocha), Vivo = Latte apenas aclarado para que se lea.
+            WpfColor baseBlue;
+            if (_bgPreset == 4)
             {
-                SetShifted(res, "BrushBlue",   0x1E, 0x66, 0xF5, _hueShift);
-                SetShifted(res, "BrushGreen",  0x40, 0xA0, 0x2B, _hueShift);
-                SetShifted(res, "BrushYellow", 0xDF, 0x8E, 0x1D, _hueShift);
-                SetShifted(res, "BrushMauve",  0x88, 0x39, 0xEF, _hueShift);
-                SetShifted(res, "BrushRed",    0xD2, 0x0F, 0x39, _hueShift);
-                SetShifted(res, "BrushAccentStrong", 0x1E, 0x66, 0xF5, _hueShift);
+                if (_vividLight)
+                {
+                    foreach (var (key, r, g, b) in _lattePalette)
+                        SetShifted(res, key, r, g, b, _hueShift);
+                    baseBlue = WpfColor.FromRgb(0x1E, 0x66, 0xF5);
+                }
+                else
+                {
+                    foreach (var (key, r, g, b) in _lattePalette)
+                        res[key] = Frozen(ShiftHue(SoftAccent(r, g, b), _hueShift));
+                    baseBlue = SoftAccent(0x1E, 0x66, 0xF5);
+                }
+                res["BrushAccentStrong"] = Frozen(ShiftHue(baseBlue, _hueShift));
+            }
+            else if (_vividDark)
+            {
+                foreach (var (key, r, g, b) in _lattePalette)
+                    res[key] = Frozen(ShiftHue(VividAccent(r, g, b), _hueShift));
+                baseBlue = VividAccent(0x1E, 0x66, 0xF5);
+                res["BrushAccentStrong"] = Frozen(ShiftHue(baseBlue, _hueShift));
             }
             else
             {
                 foreach (var (key, r, g, b) in _accentPalette)
                     SetShifted(res, key, r, g, b, _hueShift);
                 SetShifted(res, "BrushAccentStrong", 0x63, 0x9E, 0xFE, _hueShift);   // pastillas elegidas (diseño)
+                baseBlue = WpfColor.FromRgb(0x89, 0xB4, 0xFA);
             }
+
+            // Recorrido de la barra de HUE: el azul base corrido por toda la rueda (−180° … +180°)
+            var spectrum = new LinearGradientBrush { StartPoint = new System.Windows.Point(0, 0.5), EndPoint = new System.Windows.Point(1, 0.5) };
+            for (int i = 0; i <= 12; i++)
+                spectrum.GradientStops.Add(new GradientStop(ShiftHue(baseBlue, -180 + 30 * i), i / 12.0));
+            spectrum.Freeze();
+            res["BrushHueSpectrum"] = spectrum;
 
             // ── Text colors (all 4 brushes) ───────────────────────────────────
             // Contraste: 0 = suave, 100 = máximo, en cualquier tema.
@@ -276,8 +318,8 @@ namespace AudioPitcher
             res["BrushTrack"]     = Glassy("BrushOverlay");
             res["BrushTrackMain"] = _glass ? res["BrushTrack"] : res["BrushOverlay"];
             res["BrushRowHover"]  = Glassy("BrushHover", light ? 0.45 : 0.3);
-            res["BrushWave"]      = _glass ? Frozen(WithAlpha(veil, 0.2)) : Frozen(WpfColor.FromRgb(0x1A, 0x1B, 0x2E));
-            res["BrushGlassRim"]  = _glass ? GlassRim(light) : Frozen(Colors.Transparent);
+            res["BrushWave"]      = _glass ? Frozen(WithAlpha(veil, 0.2))   // recuadro de la onda (diseño): oscuro #1A1B2E, White #F4F4F6, con imagen al 20 %
+                                           : Frozen(light ? WpfColor.FromRgb(0xF4, 0xF4, 0xF6) : WpfColor.FromRgb(0x1A, 0x1B, 0x2E));
             res["BrushCtlBorder"] = _glass ? Frozen(Colors.Transparent) : res["BrushBorder"];
             if (_glass) res["ShadowDropdownOpacity"] = 0.0;
             res["ThumbShadowOpacity"] = _glass ? 0.12 : 0.25;   // perillas de las barras: más sutil sobre la imagen
@@ -287,6 +329,25 @@ namespace AudioPitcher
                 var c = ((SolidColorBrush)res[key]).Color;
                 return _glass ? Frozen(WithAlpha(c, alpha)) : Frozen(c);
             }
+
+            // ── Barra de Imagen: cuadriculado de transparencia (4 px) que se funde hacia el color del texto ──
+            var cellA = ((SolidColorBrush)res["BrushSurface"]).Color;
+            var cellB = ((SolidColorBrush)res["BrushBorder"]).Color;
+            var cells = new GeometryGroup();
+            cells.Children.Add(new RectangleGeometry(new System.Windows.Rect(0, 0, 4, 4)));
+            cells.Children.Add(new RectangleGeometry(new System.Windows.Rect(4, 4, 4, 4)));
+            var tile = new DrawingGroup();
+            tile.Children.Add(new GeometryDrawing(Frozen(cellA), null, new RectangleGeometry(new System.Windows.Rect(0, 0, 8, 8))));
+            tile.Children.Add(new GeometryDrawing(Frozen(cellB), null, cells));
+            var checker = new DrawingBrush(tile) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new System.Windows.Rect(0, 0, 8, 8) };
+            checker.Freeze();
+            res["BrushChecker"] = checker;
+            var ink = ((SolidColorBrush)res["BrushText"]).Color;
+            var fade = new LinearGradientBrush { StartPoint = new System.Windows.Point(0, 0.5), EndPoint = new System.Windows.Point(1, 0.5) };
+            fade.GradientStops.Add(new GradientStop(WithAlpha(ink, 0), 0));
+            fade.GradientStops.Add(new GradientStop(ink, 1));
+            fade.Freeze();
+            res["BrushOpacityFade"] = fade;
 
             ThemeChanged?.Invoke(null, EventArgs.Empty);
         }
@@ -301,20 +362,6 @@ namespace AudioPitcher
             => res[key] = Frozen(ShiftHue(WpfColor.FromRgb(r, g, b), deg));
 
         private static WpfColor WithAlpha(WpfColor c, double a) => WpfColor.FromArgb((byte)Math.Round(a * 255), c.R, c.G, c.B);
-
-        // Filo de luz del vidrio (como el GLASS de Figma, luz a −45°): fuerte arriba, sobre todo a la
-        // izquierda; más suave abajo; casi nada a los costados
-        private static LinearGradientBrush GlassRim(bool light)
-        {
-            double k = light ? 0.95 : 0.55;
-            var b = new LinearGradientBrush { StartPoint = new System.Windows.Point(0, 0), EndPoint = new System.Windows.Point(0.25, 1) };
-            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k), 0));
-            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k * 0.2), 0.35));
-            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k * 0.15), 0.65));
-            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k * 0.6), 1));
-            b.Freeze();
-            return b;
-        }
 
         private static SolidColorBrush Frozen(WpfColor c)
         {
@@ -331,12 +378,36 @@ namespace AudioPitcher
 
         public static WpfColor ApplyThemeKnobColor(WpfColor c)
         {
-            if (_bgPreset != 4) return c;
+            if (_bgPreset != 4)
+            {
+                if (!_vividDark) return c;
+                // "Vivo" sobre oscuro: mismo tono, saturado y menos claro (como los demás acentos)
+                RgbToHsl(c.R, c.G, c.B, out float vh, out float vs, out _);
+                HslToRgb(vh, Math.Max(vs, 0.85f), 0.56f, out byte vr, out byte vg, out byte vb);
+                return WpfColor.FromRgb(vr, vg, vb);
+            }
+            // White: Vivo = oscurecido y saturado; Suave = apenas oscurecido
             RgbToHsl(c.R, c.G, c.B, out float h, out float s, out float l);
-            float newL = Math.Clamp(l * 0.50f, 0.15f, 0.46f);
-            float newS = Math.Min(s * 1.15f, 1f);
+            float newL = _vividLight ? Math.Clamp(l * 0.50f, 0.15f, 0.46f) : Math.Min(l, 0.62f);
+            float newS = _vividLight ? Math.Min(s * 1.15f, 1f) : s * 0.8f;
             HslToRgb(h, newS, newL, out byte r, out byte g, out byte b);
             return WpfColor.FromRgb(r, g, b);
+        }
+
+        // Acento "Vivo" para fondos oscuros: el color del modo White, apenas más claro para que se lea
+        public static WpfColor VividAccent(byte r, byte g, byte b)
+        {
+            RgbToHsl(r, g, b, out float h, out float s, out float l);
+            HslToRgb(h, Math.Max(s, 0.85f), Math.Max(l, 0.56f), out byte nr, out byte ng, out byte nb);
+            return WpfColor.FromRgb(nr, ng, nb);
+        }
+
+        // Acento "Suave" para fondos claros: el color del modo White, más claro y menos saturado
+        public static WpfColor SoftAccent(byte r, byte g, byte b)
+        {
+            RgbToHsl(r, g, b, out float h, out float s, out float l);
+            HslToRgb(h, s * 0.8f, Math.Max(l, 0.64f), out byte nr, out byte ng, out byte nb);
+            return WpfColor.FromRgb(nr, ng, nb);
         }
 
         public static WpfColor ShiftHue(WpfColor c, float degrees)

@@ -16,7 +16,7 @@ The installer also installs [VB-CABLE](https://vb-audio.com/Cable/), a free virt
 - Process one app or the whole system audio.
 - Effects: reverb, delay and chorus.
 - Record system audio with trimming, preview and WAV export.
-- Themes, custom colors and "always on top".
+- Themes, image backgrounds with a frosted-glass look, custom colors and "always on top".
 - English and Spanish interface (follows the Windows language).
 - Updates itself silently when a new version is out.
 
