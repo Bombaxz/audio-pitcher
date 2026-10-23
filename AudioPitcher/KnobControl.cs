@@ -113,9 +113,18 @@ namespace AudioPitcher
             var labelColor  = GetTheme("BrushMuted2",  WpfColor.FromRgb(0x4A, 0x4A, 0x6A));
 
             bool isWhite = ThemeService.BgPreset == 4;
-            var knobPen = isWhite
+            var knobPen = isWhite || ThemeService.Glass
                 ? null
                 : new WpfPen(new SolidColorBrush(borderColor), 1.5);
+            if (ThemeService.Glass)
+            {
+                // Modo imagen (diseño): sin borde, sombra suave debajo (desenfoque 4.5, 2 px abajo, 35 %)
+                const double blur = 4.5;
+                var shadow = new RadialGradientBrush { GradientOrigin = new WpfPoint(0.5, 0.5) };
+                shadow.GradientStops.Add(new GradientStop(WpfColor.FromArgb(0x59, 0, 0, 0), (OuterR - blur) / (OuterR + blur)));
+                shadow.GradientStops.Add(new GradientStop(WpfColor.FromArgb(0, 0, 0, 0), 1));
+                dc.DrawEllipse(shadow, null, new WpfPoint(Cx, Cy + 2), OuterR + blur, OuterR + blur);
+            }
             dc.DrawEllipse(new SolidColorBrush(bgColor), knobPen,
                 new WpfPoint(Cx, Cy), OuterR, OuterR);
 
@@ -161,7 +170,7 @@ namespace AudioPitcher
 
         private static FormattedText MakeFt(string text, double size, WpfBrush brush, double dpi, bool bold) =>
             new(text, CultureInfo.InvariantCulture, System.Windows.FlowDirection.LeftToRight,
-                new Typeface(new WpfFontFamily("Segoe UI"), FontStyles.Normal,
+                new Typeface(new WpfFontFamily(App.UiFont), FontStyles.Normal,
                     bold ? FontWeights.SemiBold : FontWeights.Normal, FontStretches.Normal),
                 size, brush, dpi);
 

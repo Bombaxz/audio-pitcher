@@ -27,6 +27,8 @@ namespace AudioPitcher
         public string BgImageFile   { get; set; } = "";
         public int    BgImageAmount { get; set; } = 35;   // 0-100: cuánto se ve la imagen
         public int    BgImageBlur   { get; set; } = 10;   // radio de desenfoque
+        public int    BgImageTone   { get; set; } = 0;   // 0 auto (según la imagen), 1 claro, 2 oscuro
+        public int    BgPresetBeforeImage { get; set; } = 1;   // fondo al que se vuelve al sacar la imagen
         // Tono por app: proceso (minúsculas, "*" = sistema) → [pitch, formant]
         public Dictionary<string, double[]> AppPitch { get; set; } = new();
         // Atajos globales: id ("toggle", "up", "down", "show") → [modificadores, tecla virtual]

@@ -17,7 +17,6 @@ namespace AudioPitcher
         private static readonly WpfPen BluePen  = MakePen(WpfColor.FromRgb(0x89, 0xB4, 0xFA), 1.5);
         private static readonly WpfPen RedPen   = MakePen(WpfColor.FromRgb(0xF3, 0x8B, 0xA8), 2.0);
         private static readonly WpfPen PlayheadPen = MakePen(WpfColor.FromRgb(0xFF, 0xFF, 0xFF), 1.5);
-        private static readonly SolidColorBrush BgBrush  = MakeBrush(WpfColor.FromRgb(0x1A, 0x1B, 0x2E));
         private static readonly SolidColorBrush DimBrush = MakeBrush(WpfColor.FromArgb(0xCC, 0x1A, 0x1B, 0x2E));
 
         private static WpfPen MakePen(WpfColor c, double w)
@@ -143,7 +142,8 @@ namespace AudioPitcher
         {
             double w = ActualWidth, h = ActualHeight;
             if (w <= 0 || h <= 0) return;
-            dc.DrawRectangle(BgBrush, null, new Rect(0, 0, w, h));
+            // Fondo transparente: lo pone el recuadro (BrushWave; con imagen, vidrio translúcido)
+            dc.DrawRectangle(System.Windows.Media.Brushes.Transparent, null, new Rect(0, 0, w, h));
             if (Mode == DisplayMode.Scrolling) RenderScrolling(dc, w, h);
             else                               RenderReview(dc, w, h);
         }

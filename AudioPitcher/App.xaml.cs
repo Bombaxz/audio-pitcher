@@ -25,9 +25,20 @@ public partial class App : System.Windows.Application
         TaskScheduler.UnobservedTaskException += (_, e) => Log.Error("Error en tarea", e.Exception);
     }
 
+    public const string UiFont = "Segoe UI Variable Small, Segoe UI";
+
     protected override void OnStartup(StartupEventArgs e)
     {
         Loc.Init(SettingsStore.Load().Language);
+        // Tipografía de toda la app (también popups creados en código): Segoe UI Variable en
+        // Windows 11, más nítida en tamaños chicos; en Windows 10 cae a la Segoe UI de siempre.
+        var font = new System.Windows.Media.FontFamily(UiFont);
+        System.Windows.Documents.TextElement.FontFamilyProperty.OverrideMetadata(
+            typeof(System.Windows.Documents.TextElement), new FrameworkPropertyMetadata(font));
+        System.Windows.Controls.TextBlock.FontFamilyProperty.OverrideMetadata(
+            typeof(System.Windows.Controls.TextBlock), new FrameworkPropertyMetadata(font));
+        // Las ventanas pasan la tipografía a todo lo de adentro (se hereda)
+        Window.FontFamilyProperty.OverrideMetadata(typeof(Window), new FrameworkPropertyMetadata(font));
         base.OnStartup(e);
     }
 }

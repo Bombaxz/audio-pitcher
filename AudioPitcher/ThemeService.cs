@@ -52,6 +52,7 @@ namespace AudioPitcher
         private static int   _bgPreset      = 0;
         private static int   _textColorMode  = 0;
         private static int   _textBrightness = 100; // 0–100
+        private static bool  _glass;                // modo imagen: controles de vidrio
 
         // Custom colors per preset — store BASE color (pre-hue); hue applied on read
         private static readonly System.Collections.Generic.Dictionary<int,
@@ -61,11 +62,13 @@ namespace AudioPitcher
         public static int   BgPreset       => _bgPreset;
         public static int   TextColorMode  => _textColorMode;
         public static int   TextBrightness => _textBrightness;
+        public static bool  Glass          => _glass;
 
         public static void ApplyHueShift(float degrees)    { _hueShift = degrees;      UpdateResources(); }
         public static void ApplyBgPreset(int preset)       { _bgPreset = preset;       UpdateResources(); }
-        public static void ApplyTextColorMode(int mode)    { _textColorMode = mode == 2 ? 2 : 0; UpdateResources(); }
+        public static void ApplyTextColorMode(int mode)    { _textColorMode = mode is 1 or 2 ? mode : 0; UpdateResources(); }   // 0 normal, 1 negro, 2 color
         public static void ApplyTextBrightness(int value)  { _textBrightness = value;  UpdateResources(); }
+        public static void ApplyImageMode(bool on, int preset) { _glass = on; _bgPreset = preset; UpdateResources(); }
 
         public static void SetCustomColor(string key, WpfColor baseColor)
         {
@@ -147,9 +150,9 @@ namespace AudioPitcher
                     foreach (var (key, r, g, b) in _bgPalette)
                         SetShifted(res, key, r, g, b, _hueShift);
                     break;
-                case 4: // White
-                    Set(res, "BrushBg",       0xF4, 0xF4, 0xF6);
-                    Set(res, "BrushSurface",  0xFF, 0xFF, 0xFF);
+                case 4: // White (diseño): ventana blanca, desplegables y superficies gris claro
+                    Set(res, "BrushBg",       0xFF, 0xFF, 0xFF);
+                    Set(res, "BrushSurface",  0xF4, 0xF4, 0xF6);
                     Set(res, "BrushSurface2", 0xF9, 0xF9, 0xFB);
                     Set(res, "BrushOverlay",  0xE8, 0xE8, 0xEC);
                     break;
@@ -158,6 +161,8 @@ namespace AudioPitcher
                         Set(res, key, r, g, b);
                     break;
             }
+
+            res["ShadowDropdownOpacity"] = _bgPreset == 4 ? 0.05 : 0.15;   // sombra interior de los desplegables
 
             // ── Borders/strokes — always hue ─────────────────────────────────
             if (_bgPreset == 4) // White — light neutral borders
@@ -182,11 +187,13 @@ namespace AudioPitcher
                 SetShifted(res, "BrushYellow", 0xDF, 0x8E, 0x1D, _hueShift);
                 SetShifted(res, "BrushMauve",  0x88, 0x39, 0xEF, _hueShift);
                 SetShifted(res, "BrushRed",    0xD2, 0x0F, 0x39, _hueShift);
+                SetShifted(res, "BrushAccentStrong", 0x1E, 0x66, 0xF5, _hueShift);
             }
             else
             {
                 foreach (var (key, r, g, b) in _accentPalette)
                     SetShifted(res, key, r, g, b, _hueShift);
+                SetShifted(res, "BrushAccentStrong", 0x63, 0x9E, 0xFE, _hueShift);   // pastillas elegidas (diseño)
             }
 
             // ── Text colors (all 4 brushes) ───────────────────────────────────
@@ -205,7 +212,14 @@ namespace AudioPitcher
             }
 
             // Color: el máximo se queda en un L donde el tinte todavía se ve.
-            if (light && tint)
+            if (_textColorMode == 1)   // Negro: letras negras en cualquier tema
+            {
+                SetText("BrushText",    0.16f, 0.00f, 0f);
+                SetText("BrushSubtext", 0.24f, 0.06f, 0f);
+                SetText("BrushMuted",   0.32f, 0.14f, 0f);
+                SetText("BrushMuted2",  0.36f, 0.18f, 0f);
+            }
+            else if (light && tint)
             {
                 SetText("BrushText",    0.42f, 0.24f, 0.75f);
                 SetText("BrushSubtext", 0.48f, 0.30f, 0.65f);
@@ -252,6 +266,28 @@ namespace AudioPitcher
                 ? Frozen(formantCustom.Value)
                 : res["BrushMauve"] as SolidColorBrush ?? Frozen(WpfColor.FromRgb(0xCB, 0xA6, 0xF7));
 
+            // ── Modo imagen (diseño): controles de vidrio = su color al 20 % + un filo de luz ──
+            var bgColor = ((SolidColorBrush)res["BrushBg"]).Color;
+            var veil    = light ? WpfColor.FromRgb(0xF4, 0xF4, 0xF6) : bgColor;
+            res["BrushImageVeil"] = Frozen(veil);
+            res["BrushCtl"]       = Glassy("BrushSurface");
+            res["BrushCtl2"]      = Glassy("BrushSurface2");
+            res["BrushCtlHover"]  = Glassy("BrushSelected", 0.35);
+            res["BrushTrack"]     = Glassy("BrushOverlay");
+            res["BrushTrackMain"] = _glass ? res["BrushTrack"] : res["BrushOverlay"];
+            res["BrushRowHover"]  = Glassy("BrushHover", light ? 0.45 : 0.3);
+            res["BrushWave"]      = _glass ? Frozen(WithAlpha(veil, 0.2)) : Frozen(WpfColor.FromRgb(0x1A, 0x1B, 0x2E));
+            res["BrushGlassRim"]  = _glass ? GlassRim(light) : Frozen(Colors.Transparent);
+            res["BrushCtlBorder"] = _glass ? Frozen(Colors.Transparent) : res["BrushBorder"];
+            if (_glass) res["ShadowDropdownOpacity"] = 0.0;
+            res["ThumbShadowOpacity"] = _glass ? 0.12 : 0.25;   // perillas de las barras: más sutil sobre la imagen
+
+            SolidColorBrush Glassy(string key, double alpha = 0.2)
+            {
+                var c = ((SolidColorBrush)res[key]).Color;
+                return _glass ? Frozen(WithAlpha(c, alpha)) : Frozen(c);
+            }
+
             ThemeChanged?.Invoke(null, EventArgs.Empty);
         }
 
@@ -263,6 +299,22 @@ namespace AudioPitcher
         private static void SetShifted(System.Windows.ResourceDictionary res, string key,
                                         byte r, byte g, byte b, float deg)
             => res[key] = Frozen(ShiftHue(WpfColor.FromRgb(r, g, b), deg));
+
+        private static WpfColor WithAlpha(WpfColor c, double a) => WpfColor.FromArgb((byte)Math.Round(a * 255), c.R, c.G, c.B);
+
+        // Filo de luz del vidrio (como el GLASS de Figma, luz a −45°): fuerte arriba, sobre todo a la
+        // izquierda; más suave abajo; casi nada a los costados
+        private static LinearGradientBrush GlassRim(bool light)
+        {
+            double k = light ? 0.95 : 0.55;
+            var b = new LinearGradientBrush { StartPoint = new System.Windows.Point(0, 0), EndPoint = new System.Windows.Point(0.25, 1) };
+            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k), 0));
+            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k * 0.2), 0.35));
+            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k * 0.15), 0.65));
+            b.GradientStops.Add(new GradientStop(WithAlpha(Colors.White, k * 0.6), 1));
+            b.Freeze();
+            return b;
+        }
 
         private static SolidColorBrush Frozen(WpfColor c)
         {

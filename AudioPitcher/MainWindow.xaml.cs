@@ -64,6 +64,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        RootBorder.CornerRadius = new CornerRadius(WindowCorner);
         RestoreWindowPlacement();
         Loaded += OnLoaded;
         Closing += (_, _) => CaptureWindowPlacement();
@@ -283,10 +284,9 @@ public partial class MainWindow : Window
         {
             FormantSlider.IsEnabled        = false;
             FormantUnavailLabel.Visibility = Visibility.Visible;
-            EngBtn0.IsEnabled              = false;
         }
         if (!AudioEngine.IsSignalsmithAvailable)
-            EngBtn1.IsEnabled = false;
+            { }
         if (!AudioPolicyConfig.IsSupported)
             AppCombo.IsEnabled = false;
         ApplyLanguageTexts();
@@ -297,6 +297,7 @@ public partial class MainWindow : Window
         FxPillDot.Fill    = new SolidColorBrush(Colors.White);
 
         InitKnobColors();
+        InitSegmentedControls();
         ThemeService.ThemeChanged += (_, _) => { ApplyCustomLabelColors(); ApplyThemeChrome(); SaveSettings(); };
 
         // Hide cursor while dragging any slider thumb
@@ -364,6 +365,7 @@ public partial class MainWindow : Window
             // Measure the title label natural width (works even if later collapsed)
             TitleLabel.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
             _titleLabelNaturalWidth = TitleLabel.DesiredSize.Width;
+            UpdateTitleVisibility(animate: false);   // abrió angosta: que no choque con los botones
         }));
     }
 
@@ -515,25 +517,16 @@ public partial class MainWindow : Window
 
     private bool _minimizeToTray;
 
-    private void MinimizeMode_Click(object sender, MouseButtonEventArgs e)
+    private void SetMinimizeMode(bool tray)
     {
-        _minimizeToTray = ((FrameworkElement)sender).Tag?.ToString() == "1";
+        _minimizeToTray = tray;
         UpdateMinimizeButtons();
         SaveSettings();
-        e.Handled = true;
     }
 
     private void UpdateMinimizeButtons()
     {
-        var btns = new[] { MinBtn0, MinBtn1 };
-        var txts = new[] { MinTxt0, MinTxt1 };
-        for (int i = 0; i < 2; i++)
-        {
-            bool active = (i == 1) == _minimizeToTray;
-            btns[i].SetResourceReference(Border.BorderBrushProperty, active ? "BrushBlue" : "BrushBorder");
-            btns[i].BorderThickness = new Thickness(active ? 2 : 1);
-            txts[i].SetResourceReference(TextBlock.ForegroundProperty, active ? "BrushText" : "BrushMuted");
-        }
+        _minimizeSeg?.Select(_minimizeToTray ? 1 : 0);
         MinimizeBtn.ToolTip = Loc.T(_minimizeToTray ? "HideToTrayTip" : "MinimizeTip");
     }
 
@@ -1253,7 +1246,7 @@ public partial class MainWindow : Window
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
         var dotPos = new ThicknessAnimation(
-            new Thickness(_fxEnabled ? 15 : 2, 0, 0, 0), TimeSpan.FromMilliseconds(180)) { EasingFunction = ease };
+            new Thickness(_fxEnabled ? 14 : 1, 0, 0, 0), TimeSpan.FromMilliseconds(180)) { EasingFunction = ease };
         FxPillDot.BeginAnimation(FrameworkElement.MarginProperty, dotPos);
 
         if (FxPill.Background is SolidColorBrush pillBg)
@@ -1332,38 +1325,114 @@ public partial class MainWindow : Window
         ThemeService.ApplyTextBrightness(val);
     }
 
-    private void TextColor_Click(object sender, MouseButtonEventArgs e)
+    private void SetTextColorMode(int mode)
     {
-        int mode = int.Parse(((FrameworkElement)sender).Tag!.ToString()!);
         ThemeService.ApplyTextColorMode(mode);
         HighlightTextBtns();
     }
 
-    private void HighlightTextBtns()
+    private void HighlightTextBtns() => _textSeg?.Select(ThemeService.TextColorMode);
+
+    // Fondo claro → letras negras; fondo oscuro → blancas (Color se respeta)
+    private void MatchTextToBackground(bool lightBg)
     {
-        bool color = ThemeService.TextColorMode == 2;
-        TxtBtn0.SetResourceReference(Border.BorderBrushProperty, color ? "BrushBorder" : "BrushBlue");
-        TxtBtn0.BorderThickness = new Thickness(color ? 1 : 2);
-        TxtBtn2.SetResourceReference(Border.BorderBrushProperty, color ? "BrushBlue" : "BrushBorder");
-        TxtBtn2.BorderThickness = new Thickness(color ? 2 : 1);
+        int mode = ThemeService.TextColorMode;
+        if (lightBg && mode == 0) SetTextColorMode(1);
+        else if (!lightBg && mode == 1) SetTextColorMode(0);
     }
 
-    private void HighlightBgBtns(int preset)
+    private void HighlightBgBtns(int preset) => _bgSeg?.Select(preset);   // -1 = ninguno (modo imagen)
+
+    private void SetBgPreset(int preset)
     {
-        var btns = new[] { BgBtn0, BgBtn1, BgBtn2, BgBtn3, BgBtn4 };
-        for (int i = 0; i < btns.Length; i++)
+        if (_imageMode) { _bgImageFile = ""; ApplyBgImage(); }   // un fondo de la app reemplaza a la imagen
+        ExitImagePalette(preset);
+        MatchTextToBackground(preset == 4);
+        SaveSettings();
+    }
+
+    // ── Controles segmentados (Motor, Al minimizar, Texto, Fondo) ─────────────
+
+    private SegmentedControl? _engineSeg, _minimizeSeg, _textSeg, _bgSeg, _toneSeg;
+
+    private static readonly (string name, byte r, byte g, byte b)[] BgPresetColors =
+    {
+        ("Dark", 0x1A, 0x1B, 0x2E), ("Black", 0x00, 0x00, 0x00), ("Deep", 0x0D, 0x0D, 0x18),
+        ("Hue", 0x1A, 0x1B, 0x2E), ("White", 0xFF, 0xFF, 0xFF),
+    };
+
+    // Color real de cada fondo (Hue = el de Dark corrido por el slider de HUE)
+    private static System.Windows.Media.Brush PresetBrush(int i)
+    {
+        var (_, r, g, b) = BgPresetColors[i];
+        var c = WpfColor.FromRgb(r, g, b);
+        if (i == 3) c = ThemeService.ShiftHue(c, ThemeService.HueShift);
+        var br = new SolidColorBrush(c); br.Freeze(); return br;
+    }
+
+    private static System.Windows.Media.Brush Gradient(params string[] hex)
+    {
+        var g = new LinearGradientBrush { StartPoint = new WpfPoint(0, 0.5), EndPoint = new WpfPoint(1, 0.5) };
+        for (int i = 0; i < hex.Length; i++)
+            g.GradientStops.Add(new GradientStop((WpfColor)System.Windows.Media.ColorConverter.ConvertFromString(hex[i]), hex.Length == 1 ? 0 : (double)i / (hex.Length - 1)));
+        g.Freeze(); return g;
+    }
+
+    private void InitSegmentedControls()
+    {
+        _engineSeg = new SegmentedControl(new[]
         {
-            btns[i].SetResourceReference(Border.BorderBrushProperty, i == preset ? "BrushBlue" : "BrushBorder");
-            btns[i].BorderThickness = new Thickness(i == preset ? 2 : 1);
-        }
-    }
+            new SegmentedControl.Option { Label = () => AudioEngine.IsRubberBandAvailable ? "RubberBand" : Loc.T("RbNA"),
+                                          PillResource = "BrushAccentStrong", Enabled = AudioEngine.IsRubberBandAvailable },
+            new SegmentedControl.Option { Label = () => AudioEngine.IsSignalsmithAvailable ? "Signalsmith" : Loc.T("SsNA"),
+                                          PillResource = "BrushAccentStrong", Enabled = AudioEngine.IsSignalsmithAvailable },
+        }, stretch: false);
+        _engineSeg.SelectionChanged += SetPitchEngine;
+        EngineSegHost.Content = _engineSeg;
 
-    private void BgPreset_Click(object sender, MouseButtonEventArgs e)
-    {
-        int preset = int.Parse(((FrameworkElement)sender).Tag!.ToString()!);
-        ThemeService.ApplyBgPreset(preset);
-        HighlightBgBtns(preset);
-        e.Handled = true;
+        _minimizeSeg = new SegmentedControl(new[]
+        {
+            new SegmentedControl.Option { Label = () => Loc.T("Taskbar"), PillResource = "BrushAccentStrong" },
+            new SegmentedControl.Option { Label = () => Loc.T("Tray"),    PillResource = "BrushAccentStrong" },
+        }, stretch: false);
+        _minimizeSeg.SelectionChanged += i => SetMinimizeMode(i == 1);
+        MinimizeSegHost.Content = _minimizeSeg;
+
+        _textSeg = new SegmentedControl(new[]
+        {
+            new SegmentedControl.Option { Label = () => Loc.T("TxtNormal"), PillResource = "BrushOverlay", SelectedTextResource = "BrushText" },
+            new SegmentedControl.Option { Label = () => Loc.T("TxtBlack"), PillBrush = () => System.Windows.Media.Brushes.Black },
+            new SegmentedControl.Option { Label = () => "Color", PillBrush = () => Gradient("#F38BA8", "#89B4FA") },
+        }, stretch: false);
+        _textSeg.SelectionChanged += SetTextColorMode;
+        TextSegHost.Content = _textSeg;
+
+        var bgOptions = new SegmentedControl.Option[5];
+        for (int i = 0; i < 5; i++)
+        {
+            int idx = i;
+            bgOptions[i] = new SegmentedControl.Option
+            {
+                Label = () => BgPresetColors[idx].name, PillBrush = () => PresetBrush(idx),
+                SelectedText = idx == 4 ? WpfColor.FromRgb(0x1A, 0x1B, 0x2E) : Colors.White,
+            };
+        }
+        _bgSeg = new SegmentedControl(bgOptions, stretch: true);
+        _bgSeg.SelectionChanged += SetBgPreset;
+        BgSegHost.Content = _bgSeg;
+
+        _toneSeg = new SegmentedControl(new[]
+        {
+            new SegmentedControl.Option { Label = () => Loc.T("BgToneAuto"),  PillResource = "BrushAccentStrong" },
+            new SegmentedControl.Option { Label = () => Loc.T("BgToneLight"), PillResource = "BrushAccentStrong" },
+            new SegmentedControl.Option { Label = () => Loc.T("BgToneDark"),  PillResource = "BrushAccentStrong" },
+        }, stretch: false);
+        _toneSeg.Select(_bgImageTone);
+        _toneSeg.SelectionChanged += SetImageTone;
+        ToneSegHost.Content = _toneSeg;
+
+        // El Hue cambia el color real del fondo "Hue"
+        ThemeService.ThemeChanged += (_, _) => _bgSeg.RefreshColors();
     }
 
     // ── FX knob handlers ──────────────────────────────────────────────────────
@@ -1425,9 +1494,11 @@ public partial class MainWindow : Window
             // Imagen de fondo
             BgImageAmountSlider.Value = s.BgImageAmount;
             BgImageBlurSlider.Value   = s.BgImageBlur;
-            _bgImageFile = s.BgImageFile ?? "";
+            _bgImageFile       = s.BgImageFile ?? "";
+            _bgImageTone       = s.BgImageTone is >= 0 and <= 2 ? s.BgImageTone : 0;
+            _presetBeforeImage = s.BgPresetBeforeImage is >= 0 and <= 4 ? s.BgPresetBeforeImage : 1;
             MigrateOldBackground(_bgImageFile);
-            ApplyBgImage();
+            if (ApplyBgImage()) EnterImagePalette(remember: false);
 
             // Restore capture source (app)
             _hotkeys = s.Hotkeys ?? new();
@@ -1470,6 +1541,8 @@ public partial class MainWindow : Window
             BgImageFile      = _bgImageFile,
             BgImageAmount    = (int)BgImageAmountSlider.Value,
             BgImageBlur      = (int)BgImageBlurSlider.Value,
+            BgImageTone      = _bgImageTone,
+            BgPresetBeforeImage = _presetBeforeImage,
             AppPitch         = _appPitch,
             Hotkeys          = _hotkeys,
             WindowLeft       = _winLeft,
@@ -1482,29 +1555,15 @@ public partial class MainWindow : Window
 
     // ── Pitch engine toggle ───────────────────────────────────────────────────
 
-    private void PitchEngine_Click(object sender, MouseButtonEventArgs e)
+    private void SetPitchEngine(int mode)
     {
-        int mode = int.Parse(((FrameworkElement)sender).Tag!.ToString()!);
         _engine.PitchEngine = (AudioEngine.PitchEngineMode)mode;
         UpdateEngineButtons(mode);
         if (_engine.IsRunning) StartEngine();
         SaveSettings();
     }
 
-    private void UpdateEngineButtons(int mode)
-    {
-        var btns = new[] { EngBtn0, EngBtn1 };
-        var dots = new[] { EngDot0, EngDot1 };
-        var txts = new[] { EngTxt0, EngTxt1 };
-        for (int i = 0; i < btns.Length; i++)
-        {
-            bool active = i == mode;
-            btns[i].SetResourceReference(Border.BorderBrushProperty, active ? "BrushBlue" : "BrushBorder");
-            btns[i].BorderThickness = new Thickness(active ? 2 : 1);
-            dots[i].SetResourceReference(System.Windows.Shapes.Shape.FillProperty, active ? "BrushBlue" : "BrushBorder");
-            txts[i].SetResourceReference(TextBlock.ForegroundProperty, active ? "BrushText" : "BrushMuted");
-        }
-    }
+    private void UpdateEngineButtons(int mode) => _engineSeg?.Select(mode);
 
     // ── Settings panel toggle ─────────────────────────────────────────────────
 
@@ -1672,21 +1731,29 @@ public partial class MainWindow : Window
             for (int i = 0; i < HotkeyIds.Length; i++)
             {
                 string id = HotkeyIds[i];
-                var label = new TextBlock { FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
+                var label = new TextBlock { FontSize = 10, VerticalAlignment = VerticalAlignment.Center,
+                                            TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 0, 8, 0) };
                 label.SetResourceReference(TextBlock.TextProperty, "S." + HotkeyNames[i]);
                 label.SetResourceReference(TextBlock.ForegroundProperty, "BrushMuted");
-                var text = new TextBlock { FontSize = 9, VerticalAlignment = VerticalAlignment.Center,
+                var text = new TextBlock { FontSize = 9, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
                                            HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
+                // Caja "hundida" (diseño): sin borde, con sombra interior arriba
+                var inset = new InnerShadow { CornerRadius = 5, OffsetY = 1, Blur = 4, ShadowOpacity = 0.55 };   // diseño: hundida
                 var box = new Border
                 {
                     Width = 118, Height = 22, CornerRadius = new CornerRadius(5),
                     BorderThickness = new Thickness(1), Cursor = System.Windows.Input.Cursors.Hand,
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Right, Child = text,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                    Child = new Grid { Children = { inset, text } },
                 };
                 box.SetResourceReference(Border.BackgroundProperty, "BrushSurface2");
                 box.SetResourceReference(FrameworkElement.ToolTipProperty, "S.HkTip");
                 box.MouseLeftButtonDown += (_, ev) => { StartHotkeyCapture(id); ev.Handled = true; };
+                // Nombre a la izquierda (se recorta con "…"), caja a la derecha (se achica si es angosta)
                 var row = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+                row.ColumnDefinitions.Add(new ColumnDefinition());
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                Grid.SetColumn(box, 1);
                 row.Children.Add(label);
                 row.Children.Add(box);
                 HotkeyRows.Children.Add(row);
@@ -1703,11 +1770,32 @@ public partial class MainWindow : Window
             text.Text = capturing ? Loc.T("HkPress") : set ? HotkeyText(k![0], k[1]) : Loc.T("HkNone");
             text.SetResourceReference(TextBlock.ForegroundProperty,
                 inUse ? "BrushRed" : capturing || set ? "BrushText" : "BrushMuted");
-            box.SetResourceReference(Border.BorderBrushProperty,
-                capturing ? "BrushBlue" : inUse ? "BrushRed" : "BrushBorder");
+            if (capturing || inUse) box.SetResourceReference(Border.BorderBrushProperty, capturing ? "BrushBlue" : "BrushRed");
+            else box.BorderBrush = System.Windows.Media.Brushes.Transparent;   // sin borde en reposo
             if (inUse) box.ToolTip = Loc.T("HkInUse");
             else box.SetResourceReference(FrameworkElement.ToolTipProperty, "S.HkTip");
         }
+    }
+
+    // Pie en una línea: si no entra, se saca la versión; si sigue sin entrar, también Licencias
+    private bool _fitFooterBusy;
+    private void FooterText_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!e.WidthChanged || _fitFooterBusy) return;
+        _fitFooterBusy = true;
+        var lines = FooterText.Inlines;
+        if (!lines.Contains(VersionRun)) { lines.InsertBefore(lines.FirstInline, VersionSep); lines.InsertBefore(VersionSep, VersionRun); }
+        if (!lines.Contains(LicensesLink)) { lines.InsertBefore(ReportLink, LicensesSep); lines.InsertBefore(LicensesSep, LicensesLink); }
+        bool Fits() { FooterText.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity)); return FooterText.DesiredSize.Width <= e.NewSize.Width + 0.5; }
+        if (!Fits()) { lines.Remove(VersionRun); lines.Remove(VersionSep); }
+        if (!Fits()) { lines.Remove(LicensesLink); lines.Remove(LicensesSep); }
+        _fitFooterBusy = false;
+    }
+
+    // Ventana angosta: la caja del atajo ocupa como mucho la mitad de la fila
+    private void HotkeyRows_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        foreach (var (box, _) in _hotkeyBoxes.Values) box.Width = Math.Clamp(e.NewSize.Width * 0.55, 76, 118);
     }
 
     private static string HotkeyText(int mods, int vk)
@@ -1803,8 +1891,7 @@ public partial class MainWindow : Window
     // Textos que pone el código (los del XAML se actualizan solos por DynamicResource)
     private void ApplyLanguageTexts()
     {
-        if (!AudioEngine.IsRubberBandAvailable)  EngTxt0.Text = Loc.T("RbNA");
-        if (!AudioEngine.IsSignalsmithAvailable) EngTxt1.Text = Loc.T("SsNA");
+        _engineSeg?.RefreshTexts(); _minimizeSeg?.RefreshTexts(); _textSeg?.RefreshTexts(); _bgSeg?.RefreshTexts(); _toneSeg?.RefreshTexts();
         if (!AudioPolicyConfig.IsSupported)      AppCombo.ToolTip = Loc.T("NoPerAppRouting");
         if (_pendingUpdate != null) UpdateBtn.ToolTip = Loc.T("UpdateTo", _pendingUpdate.Version.ToString(3));
         if (_trayShowItem  != null) _trayShowItem.Text  = Loc.T("TrayShow");
@@ -1832,8 +1919,19 @@ public partial class MainWindow : Window
 
     private void SettingsMenu_Click(object sender, MouseButtonEventArgs e)
     {
-        ShowSettingsPage(int.Parse(((FrameworkElement)sender).Tag!.ToString()!));
+        // Respuesta al click: la fila se marca un instante y recién ahí cambia la página
+        var row = (Border)sender;
+        int page = int.Parse(row.Tag!.ToString()!);
+        row.SetResourceReference(Border.BackgroundProperty, "BrushRowHover");
         e.Handled = true;
+        var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(110) };
+        t.Tick += (_, _) =>
+        {
+            t.Stop();
+            row.Background = System.Windows.Media.Brushes.Transparent;
+            ShowSettingsPage(page);
+        };
+        t.Start();
     }
 
     private void SettingsBack_Click(object sender, MouseButtonEventArgs e)
@@ -1890,7 +1988,12 @@ public partial class MainWindow : Window
             if (Math.Abs(delta) > 0.5)
                 Height = Math.Clamp(ActualHeight + delta, MinHeight, _naturalHeight);
         }
+        UpdateTitleVisibility(animate: true);
+    }
 
+    // El título se esconde si choca con los botones de la derecha (al achicar o al abrir angosta)
+    private void UpdateTitleVisibility(bool animate)
+    {
         const double leftMargin  = 16;
         const double rightMargin = 12;
         const double ellipseW    = 7 + 8;
@@ -1901,6 +2004,13 @@ public partial class MainWindow : Window
         if (shouldShow == _titleVisible) return;
         _titleVisible = shouldShow;
 
+        if (!animate)
+        {
+            TitleLabel.BeginAnimation(OpacityProperty, null);
+            TitleLabel.Opacity = 1;
+            TitleLabel.Visibility = shouldShow ? Visibility.Visible : Visibility.Collapsed;
+            return;
+        }
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
         if (shouldShow)
         {
@@ -2211,25 +2321,86 @@ public partial class MainWindow : Window
             }
         }
         if (last == null) return;
-        _bgImageFile = last;   // se aplica la última agregada
-        ApplyBgImage();
-        SaveSettings();
+        SelectBgImage(last);   // se aplica la última agregada
     }
 
     private void SelectBgImage(string name)
     {
+        bool wasImage = _imageMode;
         _bgImageFile = name;
-        ApplyBgImage();
+        if (ApplyBgImage()) EnterImagePalette(remember: !wasImage);
+        else if (wasImage) ExitImagePalette(_presetBeforeImage);
         SaveSettings();
     }
 
     private void DeleteBgImage(string name)
     {
-        if (name == _bgImageFile) { _bgImageFile = ""; BgImageRect.Fill = null; }
+        bool current = name == _bgImageFile;
+        if (current) BgImageRect.Fill = BgPreview.Background = null;
         try { System.IO.File.Delete(System.IO.Path.Combine(BgFolder, name)); }
         catch (Exception ex) { Log.Error("Borrar imagen de fondo", ex); }
-        ApplyBgImage();
+        if (current) SelectBgImage("");
+        else { RefreshBgGallery(); SaveSettings(); }
+    }
+
+    // "Quitar" (vista previa): saca la imagen puesta de la galería y vuelve al fondo de antes
+    private void BgRemove_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (_bgImageFile != "") DeleteBgImage(_bgImageFile);
+        e.Handled = true;
+    }
+
+    // ── Modo imagen: la imagen reemplaza a los fondos de la app (nunca los dos a la vez) ──
+    // Imagen oscura → colores de Dark; imagen clara → colores de White. Los controles pasan a ser
+    // de vidrio (ThemeService). Tema: Auto (según el brillo de la imagen) · Claro · Oscuro.
+
+    private bool _imageMode, _bgImageIsLight;
+    private int  _bgImageTone;   // 0 auto, 1 claro, 2 oscuro
+    private int  _presetBeforeImage = 1;
+
+    private void EnterImagePalette(bool remember)
+    {
+        if (remember && !_imageMode) _presetBeforeImage = ThemeService.BgPreset;
+        _imageMode = true;
+        bool light = _bgImageTone == 1 || (_bgImageTone == 0 && _bgImageIsLight);
+        ThemeService.ApplyImageMode(true, light ? 4 : 0);
+        HeaderSeparator.Visibility = RecordSeparator.Visibility = Visibility.Collapsed;   // con imagen, sin líneas separadoras
+        MenuDivider.Height = 2;                              // divisor del menú: barrita de vidrio
+        if (!_loading) MatchTextToBackground(light);
+        HighlightBgBtns(-1);
+        _toneSeg?.Select(_bgImageTone);
+    }
+
+    private void ExitImagePalette(int preset)
+    {
+        _imageMode = false;
+        ThemeService.ApplyImageMode(false, preset);
+        HeaderSeparator.Visibility = RecordSeparator.Visibility = Visibility.Visible;
+        MenuDivider.Height = 1;
+        HighlightBgBtns(preset);
+    }
+
+    private void SetImageTone(int tone)
+    {
+        _bgImageTone = tone;
+        if (_imageMode) EnterImagePalette(remember: false);
         SaveSettings();
+    }
+
+    // Clara si el brillo promedio (miniatura de 32 px) pasa la mitad
+    private static bool IsLightImage(string path)
+    {
+        try
+        {
+            var bmp = new FormatConvertedBitmap(LoadBgBitmap(path, 32), PixelFormats.Bgra32, null, 0);
+            int w = bmp.PixelWidth, h = bmp.PixelHeight;
+            var px = new byte[w * h * 4];
+            bmp.CopyPixels(px, w * 4, 0);
+            double sum = 0;
+            for (int i = 0; i < px.Length; i += 4) sum += 0.0722 * px[i] + 0.7152 * px[i + 1] + 0.2126 * px[i + 2];
+            return sum / (w * h) / 255 > 0.5;
+        }
+        catch { return false; }
     }
 
     // OnLoad + reducido: no deja el archivo bloqueado y no gasta memoria de más
@@ -2246,7 +2417,7 @@ public partial class MainWindow : Window
         return bmp;
     }
 
-    private void ApplyBgImage()
+    private bool ApplyBgImage()
     {
         string path = string.IsNullOrEmpty(_bgImageFile) ? "" : System.IO.Path.Combine(BgFolder, _bgImageFile);
         bool has = path != "" && System.IO.File.Exists(path);
@@ -2256,44 +2427,54 @@ public partial class MainWindow : Window
             {
                 var brush = new ImageBrush(LoadBgBitmap(path)) { Stretch = Stretch.UniformToFill };
                 brush.Freeze();
-                BgImageRect.Fill = BgHeaderRect.Fill = brush;
+                BgImageRect.Fill = BgPreview.Background = brush;
+                _bgImageIsLight = IsLightImage(path);
             }
             catch (Exception ex) { Log.Error("Imagen de fondo", ex); has = false; }
         }
-        if (!has) { BgImageRect.Fill = BgHeaderRect.Fill = null; _bgImageFile = ""; }
-        // Con imagen, la franja desenfocada reemplaza la línea bajo el título
-        HeaderSeparator.Visibility = has ? Visibility.Collapsed : Visibility.Visible;
-        UpdateHeaderBlur();
+        if (!has) { BgImageRect.Fill = BgPreview.Background = null; _bgImageFile = ""; }
 
-        BgImageHost.Visibility    = has ? Visibility.Visible : Visibility.Collapsed;
-        BgImageOptions.Visibility = has ? Visibility.Visible : Visibility.Collapsed;
+        var vis = has ? Visibility.Visible : Visibility.Collapsed;
+        BgImageHost.Visibility = BgPreview.Visibility = BgImageOptions.Visibility = vis;
         RefreshBgGallery();
         if (_settingsOpen)   // la galería y los controles cambian de alto dentro de Configuración
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render,
                 new Action(() => UpdateNaturalHeight(autoExpand: true)));
+        return has;
     }
 
-    // Miniaturas: [imágenes guardadas…] [agregar]. Click aplica; click en la que está puesta la saca.
-    // La × de cada una aparece al pasar el mouse.
+    // Tira de miniaturas (diseño opción B): [agregar] [más nuevas … más viejas].
+    // Click aplica; click en la que está puesta la saca. La elegida lleva aro y tilde.
     private void RefreshBgGallery()
     {
         BgGallery.Children.Clear();
 
-        Border Tile(bool selected)
+        Border Tile() => new()
         {
-            var t = new Border
-            {
-                Width = 44, Height = 28, CornerRadius = new CornerRadius(5), Cursor = System.Windows.Input.Cursors.Hand,
-                Margin = new Thickness(0, 0, 6, 6), BorderThickness = new Thickness(selected ? 2 : 1),
-            };
-            t.SetResourceReference(Border.BorderBrushProperty, selected ? "BrushBlue" : "BrushBorder");
-            t.SetResourceReference(Border.BackgroundProperty, "BrushSurface2");
-            return t;
-        }
+            Width = 36, Height = 36, CornerRadius = new CornerRadius(6), Margin = new Thickness(0, 0, 6, 0),
+            Cursor = System.Windows.Input.Cursors.Hand,
+        };
 
-        foreach (var name in SavedBackgrounds())
+        // Agregar: ícono de "imagen con +" sobre el gris de los controles
+        var add = Tile();
+        add.SetResourceReference(Border.BackgroundProperty, "BrushCtl2");
+        var rim = new GlassEdge { CornerRadius = new CornerRadius(6) };
+        var icon = new System.Windows.Shapes.Path
         {
-            var tile = Tile(name == _bgImageFile);
+            Data = (Geometry)FindResource("AddImageGeometry"), Stretch = Stretch.Uniform,
+            Width = 14, Height = 14, HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushSubtext");
+        add.Child = new Grid { Children = { rim, icon } };
+        add.MouseEnter += (_, _) => icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushText");
+        add.MouseLeave += (_, _) => icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushSubtext");
+        add.MouseLeftButtonDown += (_, e) => { AddBgImages(); e.Handled = true; };
+        BgGallery.Children.Add(add);
+
+        foreach (var name in SavedBackgrounds().Reverse())
+        {
+            var tile = Tile();
             try
             {
                 tile.Background = new ImageBrush(LoadBgBitmap(System.IO.Path.Combine(BgFolder, name), 96))
@@ -2301,39 +2482,38 @@ public partial class MainWindow : Window
             }
             catch { continue; }   // archivo dañado: no se muestra
 
-            var del = new Border
+            if (name == _bgImageFile)
             {
-                Width = 15, Height = 15, CornerRadius = new CornerRadius(7.5), Visibility = Visibility.Collapsed,
-                Background = new SolidColorBrush(WpfColor.FromArgb(0xDD, 0x10, 0x10, 0x18)),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, -5, -5, 0), Cursor = System.Windows.Input.Cursors.Hand,
-                Child = new TextBlock { Text = "×", FontSize = 11, Foreground = System.Windows.Media.Brushes.White,
-                                        HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                                        VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, -2, 0, 0) },
-            };
+                var ring = new Border { CornerRadius = new CornerRadius(6), BorderThickness = new Thickness(2) };
+                ring.SetResourceReference(Border.BorderBrushProperty, "BrushAccentStrong");
+                var dot = new System.Windows.Shapes.Ellipse();
+                dot.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushAccentStrong");
+                var check = new System.Windows.Shapes.Path
+                {
+                    Data = Geometry.Parse("M4,7 L6,9 L10,5"), Stroke = System.Windows.Media.Brushes.White, StrokeThickness = 1.6,
+                    StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, StrokeLineJoin = PenLineJoin.Round,
+                };
+                var badge = new Grid
+                {
+                    Width = 14, Height = 14, Margin = new Thickness(0, 4, 4, 0),
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+                    Children = { dot, check },
+                };
+                tile.Child = new Grid { Children = { ring, badge } };
+            }
             string n = name;
-            del.MouseLeftButtonDown += (_, e) => { DeleteBgImage(n); e.Handled = true; };
-            tile.Child = new Grid { Children = { del } };
-            tile.MouseEnter += (_, _) => del.Visibility = Visibility.Visible;
-            tile.MouseLeave += (_, _) => del.Visibility = Visibility.Collapsed;
             tile.MouseLeftButtonDown += (_, e) => { SelectBgImage(n == _bgImageFile ? "" : n); e.Handled = true; };
             BgGallery.Children.Add(tile);
         }
+        if (BgGallery.Children[^1] is Border last) last.Margin = new Thickness(0);
+    }
 
-        // Agregar: ícono de "imagen con +"
-        var add = Tile(false);
-        var icon = new System.Windows.Shapes.Path
-        {
-            Data = (Geometry)FindResource("AddImageGeometry"), Stretch = Stretch.Uniform,
-            Width = 15, Height = 15, HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushMuted");
-        add.Child = icon;
-        add.MouseEnter += (_, _) => icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushText");
-        add.MouseLeave += (_, _) => icon.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "BrushMuted");
-        add.MouseLeftButtonDown += (_, e) => { AddBgImages(); e.Handled = true; };
-        BgGallery.Children.Add(add);
+    // La rueda del mouse corre la tira de costado
+    private void BgStrip_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (BgStripScroll.ScrollableWidth <= 0) return;
+        BgStripScroll.ScrollToHorizontalOffset(BgStripScroll.HorizontalOffset - e.Delta / 3.0);
+        e.Handled = true;
     }
 
     private void BgImageAmount_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -2348,49 +2528,17 @@ public partial class MainWindow : Window
     {
         if (BgImageBlurFx == null) return;
         BgImageBlurFx.Radius  = e.NewValue;
-        UpdateHeaderBlur();
         BgImageBlurLabel.Text = $"{(int)e.NewValue}";
         if (IsLoaded) SaveSettings();
     }
 
     // Recorte con las esquinas redondeadas de la ventana
     private void BgImageHost_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        BgImageHost.Clip = new RectangleGeometry(new Rect(e.NewSize), 13, 13);
-        UpdateHeaderBlur();
-    }
+        => BgImageHost.Clip = new RectangleGeometry(new Rect(e.NewSize), WindowCorner - 1, WindowCorner - 1);
 
-    // Franja del título: bastante más desenfocada que el resto y fundida hacia abajo (sin corte)
-    private void UpdateHeaderBlur()
-    {
-        if (BgHeaderBlurFx == null || HeaderGrid == null) return;
-        BgHeaderBlurFx.Radius = Math.Max(30, BgImageBlurFx.Radius * 2);
-        double h = HeaderGrid.ActualHeight + HeaderGrid.Margin.Top + HeaderGrid.Margin.Bottom;
-        if (h <= 0) return;
-        const double inset = 40;   // el rectángulo arranca 40 px por encima (margen negativo)
-        var mask = new LinearGradientBrush
-        {
-            MappingMode = BrushMappingMode.Absolute,
-            StartPoint  = new WpfPoint(0, inset + h - 10),
-            EndPoint    = new WpfPoint(0, inset + h + 26),
-        };
-        mask.GradientStops.Add(new GradientStop(Colors.Black, 0));
-        mask.GradientStops.Add(new GradientStop(Colors.Transparent, 1));
-        mask.Freeze();
-        BgHeaderRect.OpacityMask = mask;
-
-        // Tinte: misma franja, pero este rectángulo no tiene el margen negativo
-        var band = new LinearGradientBrush
-        {
-            MappingMode = BrushMappingMode.Absolute,
-            StartPoint  = new WpfPoint(0, h - 10),
-            EndPoint    = new WpfPoint(0, h + 26),
-        };
-        band.GradientStops.Add(new GradientStop(Colors.Black, 0));
-        band.GradientStops.Add(new GradientStop(Colors.Transparent, 1));
-        band.Freeze();
-        BgHeaderTint.OpacityMask = band;
-    }
+    // Windows 11 recorta la ventana con esquinas de 8 px: el borde propio tiene que coincidir,
+    // si no queda una franja del color de fondo en cada esquina. Windows 10 usa la región de 14 px.
+    private static readonly double WindowCorner = Environment.OSVersion.Version.Build >= 22000 ? 8 : 14;
 
     // ── Recorder ──────────────────────────────────────────────────────────────
 
