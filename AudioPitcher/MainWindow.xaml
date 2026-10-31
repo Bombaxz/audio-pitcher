@@ -477,12 +477,12 @@
                 <ComboBox x:Name="AppCombo" Style="{StaticResource DarkCombo}" Margin="0,0,0,14"
                           ToolTip="{DynamicResource S.AppTip}"
                           DropDownOpened="AppCombo_DropDownOpened"
-                          SelectionChanged="AppCombo_SelectionChanged">
+                          SelectionChanged="AppCombo_SelectionChanged"
+                          PreviewMouseLeftButtonDown="AppCombo_PreviewMouseDown"
+                          PreviewMouseLeftButtonUp="AppCombo_PreviewMouseUp">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <DockPanel LastChildFill="True" Background="Transparent"
-                                       PreviewMouseLeftButtonDown="AppItem_PreviewMouseDown"
-                                       PreviewMouseLeftButtonUp="AppItem_PreviewMouseUp">
+                            <DockPanel LastChildFill="True" Background="Transparent">
                                 <TextBlock DockPanel.Dock="Right" Margin="8,0,0,0" FontSize="12"
                                            VerticalAlignment="Center" Cursor="Hand"
                                            PreviewMouseLeftButtonDown="FavStar_MouseDown"

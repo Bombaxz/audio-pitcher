@@ -1,6 +1,6 @@
 # Graba los clips del programa real para la web (necesita ffmpeg).
 # Uso: powershell -ExecutionPolicy Bypass -File tools\record-demos.ps1 [clip ...]
-param([string[]]$Clips = @('pitch', 'formant', 'apps', 'themes', 'fx', 'rec'))
+param([string[]]$Clips = @('pitch', 'formant', 'apps', 'themes', 'fx', 'rec', 'image', 'glass', 'colors'))
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $app  = "$root\AudioPitcher"
@@ -19,8 +19,8 @@ foreach ($clip in $Clips) {
     Write-Host "Grabando $clip..."
     Start-Process $exe.FullName -ArgumentList '--record', $clip, $dir -Wait
     $fps = Get-Content "$dir\fps.txt"
-    # El hero va sobre el fondo de la app; los recuadros sobre el gris de la sección
-    $bg = if ($clip -eq 'pitch') { '0x0d0c16' } else { '0x181818' }
+    # Lo que queda debajo de la ventana (cuando crece) se rellena con el fondo del marco de la web (.shot .frame)
+    $bg = '0x100f1a'
     $size = (& ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$dir\f0000.png")
     ffmpeg -y -loglevel error -framerate $fps -i "$dir\f%04d.png" `
         -filter_complex "color=c=$($bg):s=$($size):r=30[bg];[bg][0:v]overlay=shortest=1,fps=30,format=yuv420p" `

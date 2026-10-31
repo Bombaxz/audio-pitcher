@@ -108,6 +108,7 @@ public partial class MainWindow
 
         string clip = args[r + 1], dir = args[r + 2];
         Directory.CreateDirectory(dir);
+        await DemoSetup(clip);
         StartCapture();
         await (clip switch
         {
@@ -117,6 +118,9 @@ public partial class MainWindow
             "themes"  => ClipThemes(),
             "fx"      => ClipFx(),
             "rec"     => ClipRec(),
+            "image"   => ClipImage(),
+            "glass"   => ClipGlass(),
+            "colors"  => ClipColors(),
             _         => Task.CompletedTask,
         });
         StopCaptureAndSave(dir);
@@ -202,12 +206,111 @@ public partial class MainWindow
 
     // ── Clips ───────────────────────────────────────────────────────────────
 
+    // Estado fijo para los clips (no depende de la configuración del usuario; en modo demo no se guarda nada):
+    // español, tema Dark con HUE 0 y contraste 100, acentos Suave/Vivo por defecto, ventana de 290, Spotify elegido.
+    // Los clips del hero y de "Hacelo tuyo" usan imágenes de la galería del autor (ver DemoBackgrounds).
+    private const string DemoImagePitch  = "9c0c04f9b363.jpg";   // violeta con dibujos
+    private const string DemoImageGlass  = "6cff31a6313a.jpg";   // rayas rojas
+    private const string DemoImageColors = "bd8489461f97.jpg";   // ilustración oscura
+    private const string DemoImagePick   = DemoImagePitch;       // en el clip de imagen: de las rayas rojas a la violeta
+
+    private async Task DemoSetup(string clip)
+    {
+        Loc.Set("es");
+        Width = 290;
+        // Esquinas rectas y sin filo: la web pone su propio marco redondeado
+        RootBorder.CornerRadius = new CornerRadius(0);
+        RootBorder.BorderThickness = new Thickness(0);
+        BgImageHost.Clip = null;
+        if (_imageMode) { _bgImageFile = ""; ApplyBgImage(); ExitImagePalette(0); }
+        ThemeService.SetAccentVivid(false, true);
+        HueSlider.Value = 0; BrilloSlider.Value = 100;
+        ThemeService.ApplyTextColorMode(0); HighlightTextBtns();
+        ThemeService.ApplyBgPreset(0); HighlightBgBtns(0);
+        BgImageAmountSlider.Value = 86; BgImageBlurSlider.Value = 13;
+        _bgImageTone = 0; _toneSeg?.Select(0);
+        ShowDemoApp("Spotify");
+        // "image" arranca con una imagen y cambia a otra: la ventana no cambia de tamaño
+        string? image = clip switch { "pitch" => DemoImagePitch, "glass" or "image" => DemoImageGlass, "colors" => DemoImageColors, _ => null };
+        if (image != null) SelectBgImage(image);
+        // Paneles que hacen crecer la ventana: abiertos desde antes, así el video tiene un solo tamaño
+        if (clip is "fx" or "glass") { ToggleFx_Click(this, new RoutedEventArgs()); await Wait(900); }
+        if (clip is "rec")
+        {
+            AnimateMaxHeight(RecordPanel, 175, 220, () => UpdateNaturalHeight(autoExpand: true));
+            await Wait(900);
+        }
+        if (clip is "themes" or "image" or "colors")   // estos clips arrancan ya en Apariencia
+        {
+            ToggleSettings_Click(this, new RoutedEventArgs());
+            await Wait(700);
+            ShowSettingsPage(2);
+            await Wait(900);
+        }
+        await Wait(400);
+    }
+
+    private void ShowDemoApp(string name)
+    {
+        var items = DemoAppItems();
+        int i = items.FindIndex(a => a.Name == name);
+        if (i < 0) return;
+        _appComboUpdating = true;
+        AppCombo.ItemsSource = items;
+        AppCombo.SelectedIndex = i;
+        StatusLabel.Text = $"Procesando {name} en vivo.";
+    }
+
     private async Task ClipPitch()
     {
         await Wait(600);
         await Pitch(5);   await Wait(800);
         await Pitch(-4, 1100); await Wait(800);
         await Pitch(0);   await Wait(700);
+    }
+
+    // "Hacelo tuyo" 1: elegir una imagen de la galería → aparece el fondo con los controles de vidrio
+    private async Task ClipImage()
+    {
+        await Wait(800);
+        SelectBgImage(DemoImagePick);
+        await Wait(1600);
+        await Tween(v => BgImageAmountSlider.Value = v, 86, 55, 900);
+        await Wait(300);
+        await Tween(v => BgImageAmountSlider.Value = v, 55, 90, 900);
+        await Wait(300);
+        await Tween(v => BgImageBlurSlider.Value = v, 13, 26, 800);
+        await Wait(300);
+        await Tween(v => BgImageBlurSlider.Value = v, 26, 13, 800);
+        await Wait(900);
+    }
+
+    // "Hacelo tuyo" 2: la pantalla principal sobre la imagen, con los controles de vidrio y los knobs
+    private async Task ClipGlass()
+    {
+        await Wait(600);
+        await Pitch(4); await Wait(500);
+        await Tween(v => ReverbRoomKnob.Value = v, ReverbRoomKnob.Value, 0.85, 800);
+        await Tween(v => DelayWetKnob.Value = v, DelayWetKnob.Value, 0.4, 800);
+        await Wait(700);
+        await Pitch(0, 700);
+        await Wait(800);
+    }
+
+    // "Hacelo tuyo" 3: Suave → Vivo, el HUE con los colores a la vista, y el tema claro sobre la misma imagen
+    private async Task ClipColors()
+    {
+        await Wait(700);
+        ThemeService.ApplyAccentVivid(true);
+        await Wait(1000);
+        await Tween(v => HueSlider.Value = v, 0, 130, 1500);
+        await Wait(500);
+        await Tween(v => HueSlider.Value = v, 130, -70, 1500);
+        await Wait(500);
+        SetImageTone(1);
+        await Wait(1300);
+        SetImageTone(2);
+        await Wait(1100);
     }
 
     private async Task ClipFormant()
@@ -218,7 +321,7 @@ public partial class MainWindow
         await Formant(0);  await Wait(700);
     }
 
-    private async Task ClipApps()
+    private List<AudioSessionInfo> DemoAppItems()
     {
         // Apps instaladas típicas (no hace falta que estén abiertas: solo se usa el ícono)
         string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -256,11 +359,19 @@ public partial class MainWindow
             items.Add(new AudioSessionInfo { Name = name, ProcessName = Path.GetFileNameWithoutExtension(path),
                                              ExePath = path, ProcessId = fakePid++, Icon = GetAppIcon(path) });
         }
+        return items;
+    }
+
+    private async Task ClipApps()
+    {
+        var items = DemoAppItems();
         if (items.Count == 0) return;
 
         double[] pitches = { 3, -2, 5, -4, 2 };
         _appComboUpdating = true;
         AppCombo.ItemsSource = items;
+        AppCombo.SelectedIndex = 0;   // que el primer cuadro (la portada del video) no muestre la lista vacía
+        StatusLabel.Text = $"Procesando {items[0].Name} en vivo.";
         await Wait(500);
         for (int i = 0; i < items.Count && i < pitches.Length; i++)
         {
@@ -276,12 +387,11 @@ public partial class MainWindow
 
     private async Task ClipThemes()
     {
-        ToggleSettings_Click(this, new RoutedEventArgs());
-        await Wait(1000);
-        foreach (int preset in new[] { 1, 2, 4, 3 })
+        await Wait(600);
+        // Temas: el texto pasa solo a negro en White
+        foreach (int preset in new[] { 1, 2, 4, 3, 0 })
         {
-            ThemeService.ApplyBgPreset(preset);
-            HighlightBgBtns(preset);
+            SetBgPreset(preset);
             await Wait(1100);
         }
         await Tween(v => HueSlider.Value = v, HueSlider.Value, 140, 1600);
@@ -289,14 +399,13 @@ public partial class MainWindow
         ThemeService.ApplyTextColorMode(2);
         HighlightTextBtns();
         await Wait(900);
-        await Tween(v => HueSlider.Value = v, HueSlider.Value, -90, 1600);
-        await Wait(900);
+        await Tween(v => HueSlider.Value = v, HueSlider.Value, 0, 1200);
+        await Wait(800);
     }
 
     private async Task ClipFx()
     {
-        ToggleFx_Click(this, new RoutedEventArgs());
-        await Wait(900);
+        await Wait(600);
         await Tween(v => ReverbWetKnob.Value = v, ReverbWetKnob.Value, 0.6, 800);
         await Tween(v => ReverbRoomKnob.Value = v, ReverbRoomKnob.Value, 0.85, 700);
         await Wait(300);
@@ -314,7 +423,6 @@ public partial class MainWindow
         RecBtnIcon.Foreground = red;
         Waveform.ResetScrolling();
         RecTimerLabel.Text = "0:00.0";
-        AnimateMaxHeight(RecordPanel, 175, 220, () => UpdateNaturalHeight(autoExpand: true));
         await Wait(500);
 
         // Envolvente tipo música: golpes cada 0,5 s que decaen + variación aleatoria

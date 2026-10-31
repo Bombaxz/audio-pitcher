@@ -81,11 +81,11 @@ img { max-width: 100%; height: auto; display: block; }
 .btn-ghost { background: transparent; color: var(--text); border-color: #313131; }
 .btn-ghost:hover { background: var(--surface); }
 
-/* Botones de descarga: blancos; al pasar el mouse se ponen amarillos y la flecha salta; tras el clic quedan amarillos */
+/* Botones de descarga: blancos siempre; al pasar el mouse apenas se levantan y la flecha salta */
 .btn[data-download] { background: #fff; color: #000; border-color: #fff; border-radius: 9999px; }
 .btn[data-download]:hover, .btn[data-download].done {
-  background: var(--accent); border-color: var(--accent); color: #000;
-  box-shadow: 0 8px 32px rgba(255, 198, 26, 0.35);
+  background: #fff; border-color: #fff; color: #000;
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.12);
 }
 
 /* ── Hero ────────────────────────────────────────── */
@@ -139,6 +139,7 @@ h1 {
 /* ── Secciones ───────────────────────────────────── */
 .section { max-width: var(--max); margin: 0 auto; padding: 80px 24px; }
 .section h2 { font-size: 30px; line-height: 36px; margin-bottom: 48px; }
+.section .intro { max-width: 680px; margin: -24px 0 40px; color: var(--text-2); font-size: 18px; line-height: 28px; }
 
 /* Recuadros iguales: la ventana del programa asoma desde abajo */
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -356,14 +357,15 @@ h1 {
 .footer a:hover { color: var(--text); }
 
 /* ── Aparición al hacer scroll ───────────────────── */
+/* Corto y sin desenfoque: el blur sobre los videos trababa el scroll y dejaba textos borrosos */
 .reveal {
-  opacity: 0; transform: translateY(64px); filter: blur(12px);
-  transition: opacity 900ms var(--ease), transform 900ms var(--ease), filter 900ms var(--ease);
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 600ms var(--ease), transform 600ms var(--ease);
 }
-.reveal.in { opacity: 1; transform: none; filter: none; }
+.reveal.in { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1; transform: none; filter: none; transition: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
   .words span { color: var(--text); }
   .install-steps li, .install-icon i, .install[open] { animation: none !important; opacity: 1; }
   html { scroll-behavior: auto; }

@@ -781,13 +781,15 @@ public partial class MainWindow : Window
         if (AppCombo.SelectedItem is AudioSessionInfo s && s.ProcessId < 0)
         {
             // "Más opciones…" seleccionado por teclado: expandir y reabrir
+            // (el ComboBox se cierra recién después de este evento, así que se reabre más tarde)
             _showAllApps = true;
             LoadAppSessions();
-            if (!AppCombo.IsDropDownOpen)
+            Dispatcher.BeginInvoke(new Action(() =>
             {
+                if (AppCombo.IsDropDownOpen) return;
                 _expandingApps = true;
-                Dispatcher.BeginInvoke(new Action(() => AppCombo.IsDropDownOpen = true));
-            }
+                AppCombo.IsDropDownOpen = true;
+            }));
             return;
         }
         ApplySelectedApp();
@@ -796,15 +798,20 @@ public partial class MainWindow : Window
     }
 
     // "Más opciones…": bloquear el down y expandir en el up, sin cerrar el dropdown.
-    private void AppItem_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    // Se mira toda la fila (no solo el texto): un clic en el relleno de arriba/abajo cerraba la lista.
+    private bool IsMoreOptionsRow(MouseButtonEventArgs e) =>
+        e.OriginalSource is DependencyObject src
+        && ItemsControl.ContainerFromElement(AppCombo, src) is FrameworkElement row
+        && row.DataContext is AudioSessionInfo { ProcessId: < 0 };
+
+    private void AppCombo_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is AudioSessionInfo info && info.ProcessId < 0)
-            e.Handled = true;
+        if (IsMoreOptionsRow(e)) e.Handled = true;
     }
 
-    private void AppItem_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    private void AppCombo_PreviewMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is not AudioSessionInfo info || info.ProcessId >= 0) return;
+        if (!IsMoreOptionsRow(e)) return;
         e.Handled = true;
         _showAllApps = true;
         LoadAppSessions();
@@ -2161,7 +2168,8 @@ public partial class MainWindow : Window
     private void ApplyThemeChrome()
     {
         bool isWhite = ThemeService.BgPreset == 4;
-        RootBorder.BorderThickness = isWhite ? new Thickness(0) : new Thickness(1);
+        // Clips de la web: sin filo (la web pone su propio marco)
+        RootBorder.BorderThickness = isWhite || _demoMode ? new Thickness(0) : new Thickness(1);
     }
 
     private void ApplyCustomLabelColors()
@@ -2496,6 +2504,7 @@ public partial class MainWindow : Window
 
         foreach (var name in SavedBackgrounds().Reverse())
         {
+            if (_demoMode && !DemoBackgrounds.Contains(name)) continue;   // clips de la web: solo las imágenes elegidas para mostrar
             var tile = Tile();
             try
             {
@@ -2554,9 +2563,16 @@ public partial class MainWindow : Window
         if (IsLoaded) SaveSettings();
     }
 
-    // Recorte con las esquinas redondeadas de la ventana
+    // Galería de los clips de la web: texturas de la galería del autor (sin fotos de personas ni capturas de juegos)
+    private static readonly string[] DemoBackgrounds =
+        { "9c0c04f9b363.jpg", "6cff31a6313a.jpg", "bd8489461f97.jpg" };
+
+    // Recorte con las esquinas redondeadas de la ventana (en los clips, esquinas rectas: las redondea la web)
     private void BgImageHost_SizeChanged(object sender, SizeChangedEventArgs e)
-        => BgImageHost.Clip = new RectangleGeometry(new Rect(e.NewSize), WindowCorner - 1, WindowCorner - 1);
+    {
+        double r = _demoMode ? 0 : WindowCorner - 1;
+        BgImageHost.Clip = new RectangleGeometry(new Rect(e.NewSize), r, r);
+    }
 
     // Windows 11 recorta la ventana con esquinas de 8 px: el borde propio tiene que coincidir,
     // si no queda una franja del color de fondo en cada esquina. Windows 10 usa la región de 14 px.

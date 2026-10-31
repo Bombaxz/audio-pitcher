@@ -12,7 +12,7 @@ The installer also installs [VB-CABLE](https://vb-audio.com/Cable/), a free virt
 
 ## Features
 
-- Pitch in semitones (−12 to +12) and formant, separately.
+- Pitch in semitones (−12 to +12). FORMANT is an alternative pitch shift that tries to keep the timbre of voices (use one or the other, not both).
 - Process one app or the whole system audio.
 - Effects: reverb, delay and chorus.
 - Record system audio with trimming, preview and WAV export.

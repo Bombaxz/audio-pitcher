@@ -55,7 +55,7 @@ ${fig('/img/demo-apps.jpg', 'Picking the app that Audio Pitcher will process')}
   <li>Drag <b>PITCH</b> to raise or lower the tone up to 12 semitones. The speed doesn't change.</li>
   <li>You can also click the number and type an exact value, like 2.5.</li>
   <li>The <b>↺</b> button next to it brings it back to 0.</li>
-  <li><b>FORMANT</b> changes the timbre of voices separately. Use it to keep voices natural when you move the pitch a lot.</li>
+  <li><b>FORMANT</b> is another way to shift the pitch that tries to keep the original timbre of voices. Use PITCH or FORMANT, not both at the same time.</li>
 </ul>
 <h2>4. Choose where you hear it</h2>
 <p>Open settings (gear icon) and look at <b>AUDIO OUTPUT</b>. Pick your headphones or speakers. <b>Default device</b> follows whatever Windows is using. Never pick an option that says <b>CABLE</b> there, or you'll hear nothing.</p>
@@ -100,7 +100,7 @@ ${fig('/img/demo-apps.jpg', 'Eligiendo la app que va a procesar Audio Pitcher')}
   <li>Arrastra <b>PITCH</b> para subir o bajar el tono hasta 12 semitonos. La velocidad no cambia.</li>
   <li>También puedes hacer clic en el número y escribir un valor exacto, como 2.5.</li>
   <li>El botón <b>↺</b> de al lado lo vuelve a 0.</li>
-  <li><b>FORMANT</b> cambia el timbre de las voces por separado. Sirve para que las voces suenen naturales cuando mueves mucho el tono.</li>
+  <li><b>FORMANT</b> es otra forma de cambiar el tono que intenta mantener el timbre original de las voces. Usa PITCH o FORMANT, no los dos a la vez.</li>
 </ul>
 <h2>4. Elegir dónde se escucha</h2>
 <p>Abre la configuración (ícono del engranaje) y mira <b>SALIDA DE AUDIO</b>. Elige tus auriculares o parlantes. <b>Dispositivo predeterminado</b> usa lo mismo que Windows. Nunca elijas ahí una opción que diga <b>CABLE</b>, porque no se escucharía nada.</p>
@@ -202,8 +202,6 @@ ${fig('/img/demo-apps.jpg', 'Eligiendo la app que va a procesar Audio Pitcher')}
 </ol>
 ${fig('/img/demo-pitch.jpg', 'Raising the pitch of the song in Audio Pitcher')}
 <div class="note"><p>Classic nightcore also speeds the song up. Audio Pitcher only changes the pitch and keeps the original speed, so the song lasts the same.</p></div>
-<h2>Keep voices from sounding squeaky</h2>
-<p>If vocals sound too thin at +4 or more, move <b>FORMANT</b> down a little (for example −2). The tone stays high but the voice sounds more natural.</p>
 <h2>Save a clip</h2>
 <p>Use the record button to capture a fragment, trim it and save it as WAV. Keep it for personal use: songs are copyrighted.</p>`,
     },
@@ -221,8 +219,6 @@ ${fig('/img/demo-pitch.jpg', 'Raising the pitch of the song in Audio Pitcher')}
 </ol>
 ${fig('/img/demo-pitch.jpg', 'Subiendo el tono de la canción en Audio Pitcher')}
 <div class="note"><p>El nightcore clásico además acelera la canción. Audio Pitcher solo cambia el tono y mantiene la velocidad original, así que el tema dura lo mismo.</p></div>
-<h2>Que las voces no suenen chillonas</h2>
-<p>Si las voces quedan muy finas en +4 o más, baja un poco <b>FORMANT</b> (por ejemplo −2). El tono sigue alto pero la voz suena más natural.</p>
 <h2>Guardar un fragmento</h2>
 <p>Usa el botón de grabar para capturar un fragmento, recórtalo y guárdalo en WAV. Úsalo solo para ti: las canciones tienen derechos de autor.</p>`,
     },
@@ -253,7 +249,7 @@ ${fig('/img/demo-pitch.jpg', 'Subiendo el tono de la canción en Audio Pitcher')
 <p>Every semitone is one fret on a guitar. One full step is 2 semitones.</p>
 <h2>Tips</h2>
 <ul>
-  <li>Small changes (±1 or ±2) sound almost natural. Bigger ones are noticeable on vocals: lower <b>FORMANT</b> a bit when raising the pitch, or raise it when lowering.</li>
+  <li>Small changes (±1 or ±2) sound almost natural. Bigger ones are more noticeable on vocals.</li>
   <li>Record your practice with the record button and listen back with <b>▶</b> before saving.</li>
 </ul>`,
     },
@@ -281,7 +277,7 @@ ${fig('/img/demo-pitch.jpg', 'Subiendo el tono de la canción en Audio Pitcher')
 <p>Cada semitono es un traste de la guitarra. Un tono completo son 2 semitonos.</p>
 <h2>Consejos</h2>
 <ul>
-  <li>Los cambios chicos (±1 o ±2) suenan casi naturales. Los más grandes se notan en las voces: baja un poco <b>FORMANT</b> cuando subes el tono, o súbelo cuando lo bajas.</li>
+  <li>Los cambios chicos (±1 o ±2) suenan casi naturales. Los más grandes se notan más en las voces.</li>
   <li>Graba tu práctica con el botón de grabar y escúchala con <b>▶</b> antes de guardarla.</li>
 </ul>`,
     },

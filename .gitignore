@@ -7,3 +7,8 @@ installer/vbcable/
 .claude/
 CLAUDE.md
 Capturas/
+
+# Índice local de CodeGraph
+.codegraph/
+# Capturas de Playwright
+.playwright-mcp/

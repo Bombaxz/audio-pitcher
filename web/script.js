@@ -3,12 +3,12 @@ document.querySelectorAll('[data-lang]').forEach((a) => {
   a.addEventListener('click', () => { try { localStorage.setItem('lang', a.dataset.lang); } catch (e) {} });
 });
 
-// Aparición suave al entrar en pantalla
+// Aparición suave al entrar en pantalla (arranca apenas asoma, para no ver huecos al scrollear rápido)
 const io = new IntersectionObserver((entries) => {
   for (const e of entries) {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
   }
-}, { rootMargin: '0px 0px -10% 0px' });
+}, { rootMargin: '0px 0px 5% 0px' });
 document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
 
 // Lema: cada palabra se enciende al cruzar la mitad de la pantalla
