@@ -1,5 +1,7 @@
 // Google Analytics con Consent Mode: en Europa sin cookies hasta que la persona acepte.
 (function () {
+  // No contar las pruebas: vista previa local ni navegadores automatizados (capturas de Playwright)
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || navigator.webdriver) return;
   var ID = 'G-Z9EXZ0W0NS';
   var EEA = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','LV','LI','LT','LU',
              'MT','NL','NO','PL','PT','RO','SK','SI','ES','SE','GB','CH'];
