@@ -12,3 +12,5 @@ Capturas/
 .codegraph/
 # Capturas de Playwright
 .playwright-mcp/
+# Maquetas locales (no se publican)
+web/_maqueta/

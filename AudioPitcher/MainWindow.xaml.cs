@@ -871,7 +871,7 @@ public partial class MainWindow : Window
     }
 
     private static float GetSliderVal(Slider s) =>
-        (float)(Math.Round(s.Value * 10) / 10.0);
+        (float)(Math.Round(s.Value * 10) / 10.0) + 0f; // + 0f: -0.0 → 0.0 (si no, la etiqueta muestra "+-0.0")
 
     // ── Pitch sliders ─────────────────────────────────────────────────────────
 
@@ -881,7 +881,7 @@ public partial class MainWindow : Window
     {
         if (PitchLabel == null) return;
         if (SnapToSemitone(PitchSlider)) return;
-        if (SnapNearZero(PitchSlider, 0.25)) return;
+        if (MagnetDrag(PitchSlider, e.NewValue)) return;
         float val = GetSliderVal(PitchSlider);
         PitchLabel.Text = val >= 0 ? $"+{val:F1}" : $"{val:F1}";
         _engine.PitchSemitones = val;
@@ -893,7 +893,7 @@ public partial class MainWindow : Window
     {
         if (FormantLabel == null) return;
         if (SnapToSemitone(FormantSlider)) return;
-        if (SnapNearZero(FormantSlider, 0.25)) return;
+        if (MagnetDrag(FormantSlider, e.NewValue)) return;
         float val = GetSliderVal(FormantSlider);
         FormantLabel.Text = val >= 0 ? $"+{val:F1}" : $"{val:F1}";
         _engine.FormantPitchSemitones = val;
@@ -910,12 +910,58 @@ public partial class MainWindow : Window
         return true;
     }
 
-    // Quadratic slowdown as value approaches 0 — gives a magnetic "pull" feel
-    private static double MagneticZero(double raw, double snapRange)
+    // Imán del 0 mientras arrastrás la barra: _magnetSlider se fija al apretar y se limpia al soltar
+    private readonly ZeroMagnet _magnet = new();
+    private Slider? _magnetSlider;
+
+    private bool MagnetDrag(Slider s, double raw)
     {
-        if (Math.Abs(raw) >= snapRange) return raw;
-        double t = Math.Abs(raw) / snapRange;
-        return Math.Sign(raw) * snapRange * t * t;
+        if (_snapGuard || _magnetSlider != s || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) return false;
+        double v = _magnet.Apply(raw);
+        if (v == raw) return false;
+        _snapGuard = true;
+        s.Value = v;
+        _snapGuard = false;
+        return true;
+    }
+
+    // Si te acercás despacio al 0 se pega, y hay que alejarse un poco para despegarlo.
+    // Pasando rápido (de + a −) o saliendo del 0 no frena nada.
+    private sealed class ZeroMagnet
+    {
+        private const double Zone = 0.5, Breakaway = 0.8, SlowSpeed = 25; // semitonos, semitonos/seg
+        private double _last, _speed;
+        private long _t;
+        private bool _stuck, _armed;
+
+        public void Begin(double v)
+        {
+            _last = v; _speed = 0; _t = System.Diagnostics.Stopwatch.GetTimestamp();
+            _stuck = false; _armed = true;
+        }
+
+        public double Apply(double raw)
+        {
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            double dt = Math.Max((now - _t) / (double)System.Diagnostics.Stopwatch.Frequency, 0.001);
+            _speed = _speed * 0.4 + Math.Abs(raw - _last) / dt * 0.6;
+            bool toward = Math.Abs(raw) < Math.Abs(_last)
+                          || (_last != 0 && raw != 0 && Math.Sign(raw) != Math.Sign(_last));
+            _t = now; _last = raw;
+
+            if (_stuck)
+            {
+                if (Math.Abs(raw) < Breakaway) return 0;
+                _stuck = false; _armed = false; // ya lo despegaste: no vuelve a agarrar en este arrastre
+                return raw;
+            }
+            if (_armed && raw != 0 && toward && Math.Abs(raw) < Zone && _speed < SlowSpeed)
+            {
+                _stuck = true;
+                return 0;
+            }
+            return raw;
+        }
     }
 
     // ── Tono por app: cada app vuelve a su pitch/formant ──────────────────────
@@ -1031,11 +1077,43 @@ public partial class MainWindow : Window
 
     // ── Slider jump-to-click ──────────────────────────────────────────────────
 
-    private void PitchSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e) =>
-        JumpSliderToClick((Slider)sender, e);
+    private double _slideFrom;
 
-    private void FormantSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e) =>
+    private void PitchSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _slideFrom = PitchSlider.Value;
         JumpSliderToClick((Slider)sender, e);
+        _magnet.Begin(PitchSlider.Value);
+        _magnetSlider = PitchSlider;
+    }
+
+    private void FormantSlider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _slideFrom = FormantSlider.Value;
+        JumpSliderToClick((Slider)sender, e);
+        _magnet.Begin(FormantSlider.Value);
+        _magnetSlider = FormantSlider;
+    }
+
+    private void PitchSlider_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        _magnetSlider = null;
+        MagnetOnRelease(PitchSlider, _slideFrom);
+    }
+
+    private void FormantSlider_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        _magnetSlider = null;
+        MagnetOnRelease(FormantSlider, _slideFrom);
+    }
+
+    // Imán "inteligente" del 0: solo al soltar, y solo si venías de más lejos y quedaste en ±0.1.
+    // Saliendo del 0 o cruzando de + a − no frena nada.
+    private static void MagnetOnRelease(Slider s, double from)
+    {
+        const double zone = 0.15;
+        if (s.Value != 0 && Math.Abs(s.Value) < zone && Math.Abs(from) >= zone) s.Value = 0;
+    }
 
     private static void JumpSliderToClick(Slider slider, MouseButtonEventArgs e)
     {
@@ -1053,6 +1131,7 @@ public partial class MainWindow : Window
         _pitchDragMoved  = false;
         _pitchDragOrigin = e.GetPosition(this);
         _pitchDragVal0   = PitchSlider.Value;
+        _magnet.Begin(_pitchDragVal0);
         PitchLabel.CaptureMouse();
         Mouse.OverrideCursor = System.Windows.Input.Cursors.None;
         e.Handled = true;
@@ -1063,7 +1142,8 @@ public partial class MainWindow : Window
         if (!_pitchDragging) return;
         double dx = e.GetPosition(this).X - _pitchDragOrigin.X;
         if (Math.Abs(dx) > 3) _pitchDragMoved = true;
-        PitchSlider.Value = Math.Clamp(MagneticZero(_pitchDragVal0 + dx / 10.0, 0.4), PitchSlider.Minimum, PitchSlider.Maximum);
+        double raw = Math.Clamp(_pitchDragVal0 + dx / 10.0, PitchSlider.Minimum, PitchSlider.Maximum);
+        PitchSlider.Value = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? raw : _magnet.Apply(raw);
     }
 
     private void PitchLabel_MouseUp(object sender, MouseButtonEventArgs e)
@@ -1072,7 +1152,8 @@ public partial class MainWindow : Window
         _pitchDragging = false;
         PitchLabel.ReleaseMouseCapture();
         Mouse.OverrideCursor = null;
-        if (!_pitchDragMoved)
+        if (_pitchDragMoved) MagnetOnRelease(PitchSlider, _pitchDragVal0);
+        else
         {
             PitchEditBox.Text = PitchSlider.Value.ToString("F1");
             PitchLabel.Visibility   = Visibility.Collapsed;
@@ -1115,6 +1196,7 @@ public partial class MainWindow : Window
         _formantDragMoved  = false;
         _formantDragOrigin = e.GetPosition(this);
         _formantDragVal0   = FormantSlider.Value;
+        _magnet.Begin(_formantDragVal0);
         FormantLabel.CaptureMouse();
         Mouse.OverrideCursor = System.Windows.Input.Cursors.None;
         e.Handled = true;
@@ -1125,7 +1207,8 @@ public partial class MainWindow : Window
         if (!_formantDragging) return;
         double dx = e.GetPosition(this).X - _formantDragOrigin.X;
         if (Math.Abs(dx) > 3) _formantDragMoved = true;
-        FormantSlider.Value = Math.Clamp(MagneticZero(_formantDragVal0 + dx / 10.0, 0.4), FormantSlider.Minimum, FormantSlider.Maximum);
+        double raw = Math.Clamp(_formantDragVal0 + dx / 10.0, FormantSlider.Minimum, FormantSlider.Maximum);
+        FormantSlider.Value = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? raw : _magnet.Apply(raw);
     }
 
     private void FormantLabel_MouseUp(object sender, MouseButtonEventArgs e)
@@ -1134,7 +1217,8 @@ public partial class MainWindow : Window
         _formantDragging = false;
         FormantLabel.ReleaseMouseCapture();
         Mouse.OverrideCursor = null;
-        if (!_formantDragMoved)
+        if (_formantDragMoved) MagnetOnRelease(FormantSlider, _formantDragVal0);
+        else
         {
             FormantEditBox.Text = FormantSlider.Value.ToString("F1");
             FormantLabel.Visibility   = Visibility.Collapsed;

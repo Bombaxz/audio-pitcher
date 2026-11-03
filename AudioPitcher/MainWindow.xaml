@@ -555,7 +555,7 @@
                         SmallChange="0.1" LargeChange="1"
                         ValueChanged="PitchSlider_ValueChanged" Margin="0,0,0,2"
                         Template="{StaticResource SliderTplPitch}"
-                        PreviewMouseLeftButtonDown="PitchSlider_PreviewMouseDown"
+                        PreviewMouseLeftButtonDown="PitchSlider_PreviewMouseDown" PreviewMouseLeftButtonUp="PitchSlider_PreviewMouseUp"
                         MouseRightButtonUp="Slider_ColorPick"/>
                 <Grid Margin="8,0,8,12">
                     <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="10"/>
@@ -602,7 +602,7 @@
                         SmallChange="0.1" LargeChange="1"
                         ValueChanged="FormantSlider_ValueChanged" Margin="0,0,0,2"
                         Template="{StaticResource SliderTplFormant}"
-                        PreviewMouseLeftButtonDown="FormantSlider_PreviewMouseDown"
+                        PreviewMouseLeftButtonDown="FormantSlider_PreviewMouseDown" PreviewMouseLeftButtonUp="FormantSlider_PreviewMouseUp"
                         MouseRightButtonUp="FormantLabel_ColorPick"/>
                 <Grid Margin="8,0,8,14">
                     <TextBlock Text="-12" Foreground="{DynamicResource BrushHint}" FontSize="10"/>

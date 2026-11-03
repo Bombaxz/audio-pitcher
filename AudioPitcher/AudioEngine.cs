@@ -32,6 +32,9 @@ namespace AudioPitcher
         private SignalsmithProcessor? _signalsmith;  // standard pitch (Signalsmith mode)
         private float _standardPitch = 0f;
         private float _formantPitch  = 0f;
+        // Una vez que el tono se movió, el procesador sigue activo aunque vuelva a 0:
+        // saltearlo en 0 dejaba audio viejo en su buffer y cortaba al pasar por el cero.
+        private volatile bool _pitchActive, _formantActive;
 
         // ── Effects ──────────────────────────────────────────────────────────
         private ReverbEffect? _reverb;
@@ -55,14 +58,14 @@ namespace AudioPitcher
         public float PitchSemitones
         {
             get => _standardPitch;
-            set { _standardPitch = value; _rbPitch?.SetPitch(value); _signalsmith?.SetPitch(value); }
+            set { _standardPitch = value; if (value != 0f) _pitchActive = true; _rbPitch?.SetPitch(value); _signalsmith?.SetPitch(value); }
         }
 
         // Formant-preserved pitch (RubberBand)
         public float FormantPitchSemitones
         {
             get => _formantPitch;
-            set { _formantPitch = value; _rbFormant?.SetPitch(value); }
+            set { _formantPitch = value; if (value != 0f) _formantActive = true; _rbFormant?.SetPitch(value); }
         }
 
         // Effects — setters forward to live instances
@@ -264,6 +267,9 @@ namespace AudioPitcher
             _captureChannels = fmt.Channels;
             _captureIsFloat  = fmt.Encoding == WaveFormatEncoding.IeeeFloat;
 
+            _pitchActive   = _standardPitch != 0f;
+            _formantActive = _formantPitch  != 0f;
+
             // Standard pitch
             if (PitchEngine == PitchEngineMode.RubberBand && IsRubberBandAvailable)
             {
@@ -331,8 +337,8 @@ namespace AudioPitcher
                 sampleCount = n / _captureChannels;
             }
 
-            // Standard pitch — skip if zero
-            if (_standardPitch != 0f)
+            // Standard pitch — skip until first used
+            if (_pitchActive)
             {
                 if (PitchEngine == PitchEngineMode.RubberBand && _rbPitch != null)
                 {
@@ -348,8 +354,8 @@ namespace AudioPitcher
                 }
             }
 
-            // Formant pitch — skip if zero
-            if (_formantPitch != 0f && _rbFormant != null)
+            // Formant pitch — skip until first used
+            if (_formantActive && _rbFormant != null)
             {
                 float[] rb = _rbFormant.Process(samples, sampleCount);
                 if (rb.Length == 0) return;
