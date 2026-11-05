@@ -23,7 +23,7 @@ namespace AudioPitcher
     {
         // ── Capture / output ──────────────────────────────────────────────────
         private IWaveIn? _capture;
-        private WaveOutEvent? _output;
+        private IWavePlayer?  _output;
         private BufferedWaveProvider? _buffer;
 
         // ── Pitch processors ─────────────────────────────────────────────────
@@ -145,9 +145,22 @@ namespace AudioPitcher
         public static List<string> GetOutputDeviceNames()
         {
             var list = new List<string>();
-            for (int i = 0; i < WaveOut.DeviceCount; i++)
-                list.Add(WaveOut.GetCapabilities(i).ProductName);
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                    list.Add(dev.FriendlyName);
+            }
+            catch (Exception ex) { Log.Error("GetOutputDeviceNames", ex); }
             return list;
+        }
+
+        private static MMDevice? FindRenderDeviceByName(string name)
+        {
+            using var enumerator = new MMDeviceEnumerator();
+            foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                if (dev.FriendlyName == name) return dev;
+            return null;
         }
 
         // VB-CABLE se identifica por la descripción del driver ("VB-Audio Virtual Cable"):
@@ -254,13 +267,18 @@ namespace AudioPitcher
         // ── Start / Stop ─────────────────────────────────────────────────────
         public bool FxEnabled { get; set; } = true;
 
-        public void Start(int outputDeviceIndex)
+        // Colchones chicos avisados por Windows cada 10 ms. Medido con un clic dando vueltas por el cable:
+        // WaveOut 150 ms + captura 50 ms daban 368 ms por vuelta; esto da ~250 ms.
+        private const int CaptureBufferMs = 20, OutputLatencyMs = 30, PrimeMs = 20;
+
+        /// <param name="outputDeviceName">Nombre del endpoint de salida; null = predeterminado de Windows.</param>
+        public void Start(string? outputDeviceName)
         {
             Stop();
 
             var cable = FindCableOutputDevice()
                 ?? throw new InvalidOperationException("VB-CABLE no encontrado. Instalá desde vb-audio.com/Cable");
-            var wasapi = new WasapiCapture(cable, false, 50);
+            var wasapi = new WasapiCapture(cable, true, CaptureBufferMs);
             _capture = wasapi;
             WaveFormat fmt = wasapi.WaveFormat;
 
@@ -303,8 +321,14 @@ namespace AudioPitcher
                 DiscardOnBufferOverflow = true
             };
 
-            _output = new WaveOutEvent { DeviceNumber = outputDeviceIndex, DesiredLatency = 150 };
+            var outDev = (outputDeviceName != null ? FindRenderDeviceByName(outputDeviceName) : null)
+                ?? GetDefaultRender()
+                ?? throw new InvalidOperationException("No hay dispositivo de salida");
+            _output = new WasapiOut(outDev, AudioClientShareMode.Shared, true, OutputLatencyMs);
             _output.Init(_buffer);
+            // Un poco de silencio al arrancar para que el primer paquete no llegue tarde
+            var prime = new byte[floatFmt.AverageBytesPerSecond * PrimeMs / 1000];
+            _buffer.AddSamples(prime, 0, prime.Length);
             _output.Play();
 
             _capture.DataAvailable += OnData;

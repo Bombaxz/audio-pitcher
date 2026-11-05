@@ -838,7 +838,7 @@ public partial class MainWindow : Window
     private void OutputCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (OutputCombo.SelectedIndex >= 0)
-            _outputDeviceIndex = OutputCombo.SelectedIndex - 1;   // item 0 → -1 (wave mapper)
+            _outputDeviceIndex = OutputCombo.SelectedIndex - 1;   // item 0 → -1 (predeterminado de Windows)
         if (_loading) return;
         if (_engine.IsRunning) StartEngine();
         SaveSettings();
@@ -853,7 +853,7 @@ public partial class MainWindow : Window
             _engine.PitchSemitones        = GetSliderVal(PitchSlider);
             _engine.FormantPitchSemitones = GetSliderVal(FormantSlider);
             _engine.FxEnabled             = _fxEnabled;
-            _engine.Start(_outputDeviceIndex);
+            _engine.Start(_outputDeviceIndex < 0 ? null : OutputCombo.SelectedItem as string);
 
             _engine.ReverbWet      = (float)ReverbWetKnob.Value;
             _engine.ReverbRoomSize = (float)ReverbRoomKnob.Value;
@@ -929,7 +929,7 @@ public partial class MainWindow : Window
     // Pasando rápido (de + a −) o saliendo del 0 no frena nada.
     private sealed class ZeroMagnet
     {
-        private const double Zone = 0.5, Breakaway = 0.8, SlowSpeed = 25; // semitonos, semitonos/seg
+        private const double Zone = 0.4, Breakaway = 0.7, SlowSpeed = 20; // semitonos, semitonos/seg
         private double _last, _speed;
         private long _t;
         private bool _stuck, _armed;
@@ -1599,6 +1599,8 @@ public partial class MainWindow : Window
             {
                 var devices = AudioEngine.GetOutputDeviceNames();
                 int idx = devices.FindIndex(d => d == s.OutputDeviceName);
+                // Versiones viejas guardaban el nombre cortado a 31 letras (WaveOut)
+                if (idx < 0) idx = devices.FindIndex(d => d.StartsWith(s.OutputDeviceName, StringComparison.Ordinal));
                 if (idx >= 0) OutputCombo.SelectedIndex = idx + 1;
             }
 
